@@ -1,0 +1,16 @@
+bin/
+out/
+*.class
+recorde.txt
+
+# Material da entrega e anotações pessoais
+entrada/
+IDEA.md
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
