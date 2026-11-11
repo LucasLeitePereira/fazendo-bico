@@ -31,7 +31,7 @@ public class Galinha extends Entidade {
         ativa = true;
         voando = false;
         vida = VIDA_NO_CHAO;
-        velocidade = 0.5f;
+        velocidade = 0.4f;
         quadrosPiscando = 0;
         contadorPassos = 0;
         escolherNovoPasseio();
@@ -131,6 +131,10 @@ public class Galinha extends Entidade {
 
     public boolean isAtiva() {
         return ativa;
+    }
+
+    public int getVida() {
+        return vida;
     }
 
     public boolean isVoando() {

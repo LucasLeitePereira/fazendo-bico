@@ -3,109 +3,173 @@ package modelo;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Grade de tiles lida de um arquivo de texto. Cada caractere é um tile:
- * '.' grama, ',' flor, '=' caminho, 'S' saída, 'P' porta,
- * '#' árvore, '~' água, 'C' parede, 'T' telhado, 'F' cerca (esses cinco são sólidos).
- * Marcadores viram grama e guardam a posição inicial de alguém:
- * 'H' herói, '1' a '4' moradores, 'G' galinha.
+ * Mapa lido de um arquivo do Tiled (.tmx). Guarda as camadas de tiles, quais tiles
+ * são sólidos, as decorações, os pontos marcados (herói, moradores, galinha) e a saída.
  */
 public class Mapa {
     public static final int TAMANHO_TILE = 16;
-    public static final char GRAMA = '.';
-    public static final char SAIDA = 'S';
-    private static final String TILES_SOLIDOS = "#~CTF";
-    private static final String MARCADORES = "H1234G";
-    private static final char SEM_MARCADOR = ' ';
 
-    private char[][] tiles;
-    private char[][] marcadores;
     private int colunas;
     private int linhas;
+    private List<int[]> camadasDeBaixo = new ArrayList<int[]>();
+    private List<int[]> camadasDeCima = new ArrayList<int[]>();
+    private boolean[] solido;
 
-    public Mapa(List<String> linhasDoArquivo) {
-        linhas = linhasDoArquivo.size();
-        colunas = linhasDoArquivo.get(0).length();
-        tiles = new char[linhas][colunas];
-        marcadores = new char[linhas][colunas];
+    private String imagemDoTileset;
+    private int primeiroCodigoDoTileset = 1;
+    private int colunasDoTileset = 1;
 
-        for (int linha = 0; linha < linhas; linha++) {
-            String texto = linhasDoArquivo.get(linha);
-            if (texto.length() != colunas) {
-                throw new IllegalArgumentException("A linha " + (linha + 1) + " do mapa tem "
-                        + texto.length() + " caracteres, mas deveria ter " + colunas);
-            }
-            for (int coluna = 0; coluna < colunas; coluna++) {
-                char caractere = texto.charAt(coluna);
-                if (MARCADORES.indexOf(caractere) >= 0) {
-                    marcadores[linha][coluna] = caractere;
-                    tiles[linha][coluna] = GRAMA;
-                } else {
-                    marcadores[linha][coluna] = SEM_MARCADOR;
-                    tiles[linha][coluna] = caractere;
-                }
-            }
-        }
+    private Decoracao[] decoracoes = new Decoracao[0];
+    private Decoracao[] animais = new Decoracao[0];
+    private Map<String, List<Point>> marcadores = new HashMap<String, List<Point>>();
+    private Rectangle saida;
+
+    public Mapa(int colunas, int linhas) {
+        this.colunas = colunas;
+        this.linhas = linhas;
+        solido = new boolean[colunas * linhas];
     }
 
     /**
-     * Retorna o canto superior esquerdo, em pixels, de cada tile que tem o marcador.
+     * Cada camada é um vetor com um código de tile por posição (linha * colunas + coluna).
+     * Zero quer dizer posição vazia.
      */
-    public List<Point> encontrarMarcadores(char marcador) {
-        List<Point> posicoes = new ArrayList<Point>();
-        for (int linha = 0; linha < linhas; linha++) {
-            for (int coluna = 0; coluna < colunas; coluna++) {
-                if (marcadores[linha][coluna] == marcador) {
-                    posicoes.add(new Point(coluna * TAMANHO_TILE, linha * TAMANHO_TILE));
-                }
-            }
+    public void adicionarCamada(int[] codigos, boolean desenharPorCima) {
+        if (desenharPorCima) {
+            camadasDeCima.add(codigos);
+        } else {
+            camadasDeBaixo.add(codigos);
         }
-        return posicoes;
+    }
+
+    public void definirTileset(String imagem, int primeiroCodigo, int colunasDaImagem) {
+        imagemDoTileset = imagem;
+        primeiroCodigoDoTileset = primeiroCodigo;
+        colunasDoTileset = colunasDaImagem;
+    }
+
+    public void marcarSolido(int coluna, int linha) {
+        solido[linha * colunas + coluna] = true;
+    }
+
+    public void adicionarMarcador(String nome, int x, int y) {
+        List<Point> pontos = marcadores.get(nome);
+        if (pontos == null) {
+            pontos = new ArrayList<Point>();
+            marcadores.put(nome, pontos);
+        }
+        pontos.add(new Point(x, y));
     }
 
     /**
-     * Fora do mapa conta como sólido, assim ninguém sai andando pela borda.
+     * Pontos marcados com este nome no Tiled. A lista vem vazia se não houver nenhum.
+     */
+    public List<Point> encontrarMarcadores(String nome) {
+        List<Point> pontos = marcadores.get(nome);
+        if (pontos == null) {
+            return new ArrayList<Point>();
+        }
+        return pontos;
+    }
+
+    public Point encontrarMarcador(String nome) {
+        List<Point> pontos = encontrarMarcadores(nome);
+        if (pontos.isEmpty()) {
+            throw new IllegalStateException("O mapa não tem o ponto \"" + nome + "\".");
+        }
+        return pontos.get(0);
+    }
+
+    /**
+     * Fora do mapa conta como sólido, para ninguém sair pela borda.
      */
     public boolean colide(Rectangle area) {
-        if (area.x < 0 || area.y < 0) {
-            return true;
-        }
-        if (area.x + area.width > getLarguraEmPixels() || area.y + area.height > getAlturaEmPixels()) {
+        if (area.x < 0 || area.y < 0 || area.x + area.width > getLarguraEmPixels()
+                || area.y + area.height > getAlturaEmPixels()) {
             return true;
         }
 
-        int colunaInicial = area.x / TAMANHO_TILE;
-        int colunaFinal = (area.x + area.width - 1) / TAMANHO_TILE;
-        int linhaInicial = area.y / TAMANHO_TILE;
-        int linhaFinal = (area.y + area.height - 1) / TAMANHO_TILE;
-
-        for (int linha = linhaInicial; linha <= linhaFinal; linha++) {
-            for (int coluna = colunaInicial; coluna <= colunaFinal; coluna++) {
-                if (ehSolido(tiles[linha][coluna])) {
+        int primeiraColuna = area.x / TAMANHO_TILE;
+        int ultimaColuna = (area.x + area.width - 1) / TAMANHO_TILE;
+        int primeiraLinha = area.y / TAMANHO_TILE;
+        int ultimaLinha = (area.y + area.height - 1) / TAMANHO_TILE;
+        for (int linha = primeiraLinha; linha <= ultimaLinha; linha++) {
+            for (int coluna = primeiraColuna; coluna <= ultimaColuna; coluna++) {
+                if (isSolido(coluna, linha)) {
                     return true;
                 }
+            }
+        }
+
+        for (int i = 0; i < decoracoes.length; i++) {
+            if (decoracoes[i].bloqueia(area)) {
+                return true;
             }
         }
         return false;
     }
 
-    public boolean ehSolido(char tile) {
-        return TILES_SOLIDOS.indexOf(tile) >= 0;
-    }
-
-    public char getTileNaPosicao(float pixelX, float pixelY) {
-        int coluna = (int) (pixelX / TAMANHO_TILE);
-        int linha = (int) (pixelY / TAMANHO_TILE);
+    public boolean isSolido(int coluna, int linha) {
         if (coluna < 0 || linha < 0 || coluna >= colunas || linha >= linhas) {
-            return GRAMA;
+            return true;
         }
-        return tiles[linha][coluna];
+        return solido[linha * colunas + coluna];
     }
 
-    public char getTile(int coluna, int linha) {
-        return tiles[linha][coluna];
+    public boolean estaNaSaida(float x, float y) {
+        return saida != null && saida.contains(x, y);
+    }
+
+    public List<int[]> getCamadasDeBaixo() {
+        return camadasDeBaixo;
+    }
+
+    public List<int[]> getCamadasDeCima() {
+        return camadasDeCima;
+    }
+
+    public String getImagemDoTileset() {
+        return imagemDoTileset;
+    }
+
+    public int getPrimeiroCodigoDoTileset() {
+        return primeiroCodigoDoTileset;
+    }
+
+    public int getColunasDoTileset() {
+        return colunasDoTileset;
+    }
+
+    public Decoracao[] getDecoracoes() {
+        return decoracoes;
+    }
+
+    public void setDecoracoes(Decoracao[] decoracoes) {
+        this.decoracoes = decoracoes;
+    }
+
+    /**
+     * Animais desenhados no Tiled. O jogo cria um animal vivo no lugar de cada um.
+     */
+    public Decoracao[] getAnimais() {
+        return animais;
+    }
+
+    public void setAnimais(Decoracao[] animais) {
+        this.animais = animais;
+    }
+
+    public Rectangle getSaida() {
+        return saida;
+    }
+
+    public void setSaida(Rectangle saida) {
+        this.saida = saida;
     }
 
     public int getColunas() {

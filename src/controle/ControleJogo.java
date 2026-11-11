@@ -6,8 +6,13 @@ import java.util.List;
 
 import dao.DaoMapa;
 import dao.DaoRecorde;
+import modelo.Animal;
 import modelo.Cena;
+import modelo.Decoracao;
 import modelo.Dialogo;
+import modelo.Direcao;
+import modelo.Efeito;
+import modelo.Entidade;
 import modelo.Galinha;
 import modelo.Heroi;
 import modelo.Mapa;
@@ -27,21 +32,26 @@ public class ControleJogo {
     private static final int QUADROS_DE_TREMOR_DA_RAIDE = 90;
     private static final int QUADROS_DE_TREMOR_DO_DANO = 8;
     private static final float RECUO_NA_SAIDA_FECHADA = 6;
+    private static final int PASSOS_ENTRE_POEIRAS = 14;
+    // Tempo da animação de morte (13 quadros) mais uma pausa antes da tela final.
+    private static final int QUADROS_DA_MORTE = 13 * 6 + 60;
+    private static final String MAPA_DA_VILA = "/mapas/vila.tmx";
+    private static final String MAPA_DO_CAMPO = "/mapas/campo.tmx";
 
     private static final String[] FALAS_AO_ACORDAR = {
         "Você acorda. Lá fora, alguém grita: \"GALINHA NÃO!\"",
         "Melhor ver o que está acontecendo na vila. (Setas para andar, Espaço para falar)"
     };
     private static final String[] FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO = {
-        "O campo fica ao sul, é só seguir a estrada.",
+        "O campo fica depois da praia, a leste. É só seguir a areia.",
         "Boa sorte. Você vai precisar."
     };
     private static final String[] FALAS_DA_SAIDA_FECHADA = {
         "Melhor falar com o prefeito antes de sair da vila."
     };
     private static final String[] FALAS_AO_CHEGAR_NO_CAMPO = {
-        "O campo. Algumas galinhas ciscam, tranquilas.",
-        "Parece fácil. (Espaço para atacar, saia pela estrada para fugir)"
+        "O campo. Só uma galinha, ciscando sozinha no meio do mato.",
+        "Parece fácil. (Espaço para atacar. Para fugir, volte pela trilha ao norte)"
     };
 
     private Mundo mundo = new Mundo();
@@ -56,6 +66,7 @@ public class ControleJogo {
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
+        mundo.setMapaDoFundo(daoMapa.carregar(MAPA_DA_VILA));
         janela = new Janela(mundo, teclado);
         som.tocarMusica("inicial");
     }
@@ -130,6 +141,7 @@ public class ControleJogo {
     private void comecarPartida() {
         mundo.getPartida().reiniciar();
         mundo.recolherTodasAsGalinhas();
+        mundo.apagarEfeitos();
         missaoSendoOferecida = false;
         carregarVila();
         mundo.getDialogo().abrir("", FALAS_AO_ACORDAR);
@@ -146,28 +158,61 @@ public class ControleJogo {
     // ---------- Vila ----------
 
     private void carregarVila() {
-        Mapa mapa = daoMapa.carregar("/mapas/vila.txt");
+        Mapa mapa = daoMapa.carregar(MAPA_DA_VILA);
         mundo.setMapa(mapa);
         mundo.setHeroi(criarHeroi(mapa));
         mundo.setMoradores(criarMoradores(mapa));
+        mundo.setAnimais(criarAnimais(mapa));
         mudarCena(Cena.VILA);
         som.tocarMusica("vila");
     }
 
     private Heroi criarHeroi(Mapa mapa) {
-        Point inicio = mapa.encontrarMarcadores('H').get(0);
-        return new Heroi(inicio.x + 2, inicio.y + 2);
+        Point inicio = mapa.encontrarMarcador("heroi");
+        return new Heroi(inicio.x - 6, inicio.y - 6);
     }
 
     /**
-     * Cada morador fica no lugar do seu número no mapa (1 a 4).
+     * Cada animal desenhado no Tiled vira um animal de verdade, que passeia.
+     */
+    private Animal[] criarAnimais(Mapa mapa) {
+        Decoracao[] lugares = mapa.getAnimais();
+        Animal[] animais = new Animal[lugares.length];
+        for (int i = 0; i < lugares.length; i++) {
+            Decoracao lugar = lugares[i];
+            String tipo = lugar.getTipo();
+            float peX = lugar.getX() + lugar.getLargura() / 2.0f;
+            float peY = lugar.getPeY() - Animal.margemDaImagem(tipo);
+            animais[i] = new Animal(tipo, peX, peY);
+            if (lugar.isEspelhada()) {
+                animais[i].setDirecao(Direcao.ESQUERDA);
+            }
+        }
+        return animais;
+    }
+
+    private void atualizarAnimais() {
+        Animal[] animais = mundo.getAnimais();
+        Entidade[] obstaculos = mundo.getObstaculos();
+        Heroi heroi = mundo.getHeroi();
+        for (int i = 0; i < animais.length; i++) {
+            animais[i].atualizar(mundo.getMapa(), obstaculos);
+            // Se o animal encostou no herói, volta para não prendê-lo.
+            if (animais[i].colide(heroi)) {
+                animais[i].desfazerUltimoPasso();
+            }
+        }
+    }
+
+    /**
+     * Cada morador fica no ponto "morador1" a "morador4" do mapa.
      */
     private Morador[] criarMoradores(Mapa mapa) {
         Morador[] moradores = new Morador[4];
 
         moradores[0] = criarMorador(mapa, 1, "Prefeito Bento", new String[] {
             "Ah, finalmente acordou! Tenho um serviço pra você.",
-            "Tem galinhas no campo ao sul. Derrote quantas puder.",
+            "Tem galinhas no campo, depois da praia a leste. Derrote quantas puder.",
             "Pago 10 moedas por galinha!",
             "...Por que tanto? Ah, você vai descobrir. Digo, não é nada!"
         }, true);
@@ -191,9 +236,8 @@ public class ControleJogo {
     }
 
     private Morador criarMorador(Mapa mapa, int numero, String nome, String[] falas, boolean daMissao) {
-        char marcador = Character.forDigit(numero, 10);
-        Point posicao = mapa.encontrarMarcadores(marcador).get(0);
-        return new Morador(posicao.x + 2, posicao.y + 2, numero, nome, falas, daMissao);
+        Point posicao = mapa.encontrarMarcador("morador" + numero);
+        return new Morador(posicao.x - 6, posicao.y - 6, numero, nome, falas, daMissao);
     }
 
     private void atualizarVila() {
@@ -209,6 +253,8 @@ public class ControleJogo {
         Heroi heroi = mundo.getHeroi();
         heroi.atualizar(mundo.getMapa());
         moverHeroiPeloTeclado();
+        atualizarAnimais();
+        mundo.atualizarEfeitos();
 
         if (teclado.consumirAcao()) {
             conversarComMoradorProximo();
@@ -243,9 +289,9 @@ public class ControleJogo {
     private void abrirConversa(Morador morador) {
         Dialogo dialogo = mundo.getDialogo();
         if (morador.isDaMissao() && mundo.getPartida().isMissaoAceita()) {
-            dialogo.abrir(morador.getNome(), FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO);
+            dialogo.abrir(morador.getNome(), FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO, morador.getNumero());
         } else {
-            dialogo.abrir(morador.getNome(), morador.getFalas());
+            dialogo.abrir(morador.getNome(), morador.getFalas(), morador.getNumero());
             if (morador.isDaMissao()) {
                 missaoSendoOferecida = true;
             }
@@ -259,7 +305,7 @@ public class ControleJogo {
         Heroi heroi = mundo.getHeroi();
         float recuoX = -heroi.getDirecao().getPassoX() * RECUO_NA_SAIDA_FECHADA;
         float recuoY = -heroi.getDirecao().getPassoY() * RECUO_NA_SAIDA_FECHADA;
-        heroi.mover(recuoX, recuoY, mundo.getMapa(), mundo.getMoradores());
+        heroi.mover(recuoX, recuoY, mundo.getMapa(), mundo.getObstaculos());
         heroi.setAndando(false);
     }
 
@@ -286,17 +332,21 @@ public class ControleJogo {
     // ---------- Campo ----------
 
     private void carregarCampo() {
-        Mapa mapa = daoMapa.carregar("/mapas/campo.txt");
+        Mapa mapa = daoMapa.carregar(MAPA_DO_CAMPO);
         mundo.setMapa(mapa);
         mundo.setHeroi(criarHeroi(mapa));
         mundo.setMoradores(new Morador[0]);
+        mundo.setAnimais(criarAnimais(mapa));
         mundo.recolherTodasAsGalinhas();
+        mundo.apagarEfeitos();
 
-        List<Point> posicoesDasGalinhas = mapa.encontrarMarcadores('G');
+        // O campo começa só com as galinhas marcadas no mapa (no mapa padrão, uma).
+        // As outras chegam com a raide, depois que a primeira cai.
+        List<Point> posicoesDasGalinhas = mapa.encontrarMarcadores("galinha");
         for (int i = 0; i < posicoesDasGalinhas.size(); i++) {
             Point posicao = posicoesDasGalinhas.get(i);
             Galinha galinha = mundo.pegarGalinhaLivre();
-            galinha.soltarNoChao(posicao.x + 2, posicao.y + 2);
+            galinha.soltarNoChao(posicao.x - 6, posicao.y - 6);
         }
 
         mudarCena(Cena.CAMPO);
@@ -317,6 +367,13 @@ public class ControleJogo {
         Partida partida = mundo.getPartida();
         Heroi heroi = mundo.getHeroi();
         heroi.atualizar(mundo.getMapa());
+        atualizarAnimais();
+        mundo.atualizarEfeitos();
+
+        if (!heroi.estaVivo()) {
+            atualizarMorte();
+            return;
+        }
 
         if (heroi.estaAtacando()) {
             heroi.setAndando(false);
@@ -339,9 +396,22 @@ public class ControleJogo {
         partida.diminuirTremor();
 
         if (!heroi.estaVivo()) {
-            terminarPartida(false);
+            heroi.setAndando(false);
+            som.pararMusica();
         } else if (heroiEstaNaSaida()) {
             terminarPartida(true);
+        }
+    }
+
+    /**
+     * O herói caiu: as galinhas que já estavam no ar terminam o voo, a animação
+     * de morte roda e só depois aparece a tela final.
+     */
+    private void atualizarMorte() {
+        atualizarGalinhas();
+        mundo.getPartida().diminuirTremor();
+        if (mundo.getHeroi().getQuadrosDesdeAMorte() >= QUADROS_DA_MORTE) {
+            terminarPartida(false);
         }
     }
 
@@ -353,8 +423,13 @@ public class ControleJogo {
         for (int i = 0; i < galinhas.length; i++) {
             Galinha galinha = galinhas[i];
             if (galinha.isAtiva() && areaDoGolpe.intersects(galinha.getArea())) {
+                float centroX = galinha.getCentroX();
+                float centroY = galinha.getCentroY() - 6;
                 boolean morreu = galinha.receberGolpe(heroi.getArma().getDano(), heroi.getDirecaoDoOlhar(), mundo.getMapa());
+                mundo.criarEfeito(Efeito.PENAS, centroX, centroY, heroi.isOlhandoParaEsquerda());
                 if (morreu) {
+                    mundo.criarEfeito(Efeito.FUMACA, centroX, centroY + 4, false);
+                    mundo.criarEfeito(Efeito.BRILHO, centroX, centroY - 10, false);
                     galinhaDerrotada();
                 } else {
                     som.tocarEfeito("acerto");
@@ -459,13 +534,18 @@ public class ControleJogo {
         }
 
         heroi.virarPara(passoX, passoY);
-        heroi.mover(passoX * velocidade, passoY * velocidade, mundo.getMapa(), mundo.getMoradores());
+        heroi.mover(passoX * velocidade, passoY * velocidade, mundo.getMapa(), mundo.getObstaculos());
         heroi.setAndando(true);
+
+        // Um pouco de poeira nos pés enquanto corre.
+        if (heroi.getContadorPassos() % PASSOS_ENTRE_POEIRAS == 1) {
+            float peY = heroi.getY() + heroi.getAltura() - 3;
+            mundo.criarEfeito(Efeito.POEIRA, heroi.getCentroX(), peY, heroi.isOlhandoParaEsquerda());
+        }
     }
 
     private boolean heroiEstaNaSaida() {
         Heroi heroi = mundo.getHeroi();
-        char tile = mundo.getMapa().getTileNaPosicao(heroi.getCentroX(), heroi.getCentroY());
-        return tile == Mapa.SAIDA;
+        return mundo.getMapa().estaNaSaida(heroi.getCentroX(), heroi.getCentroY());
     }
 }

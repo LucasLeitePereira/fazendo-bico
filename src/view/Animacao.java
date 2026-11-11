@@ -20,6 +20,7 @@ public class Animacao {
     private int peY;
     private boolean desenhoOlhaParaEsquerda = false;
     private int quadrosDoJogoPorQuadro = 6;
+    private boolean repetir = true;
 
     public Animacao(BufferedImage tira, int larguraDoQuadro, int alturaDoQuadro, Color corReserva) {
         this.tira = tira;
@@ -50,6 +51,13 @@ public class Animacao {
         this.quadrosDoJogoPorQuadro = quadrosDoJogoPorQuadro;
     }
 
+    /**
+     * Sem repetição, a animação para no último quadro (usado na morte do herói).
+     */
+    public void setRepetir(boolean repetir) {
+        this.repetir = repetir;
+    }
+
     public boolean temImagem() {
         return tira != null;
     }
@@ -68,7 +76,12 @@ public class Animacao {
         }
 
         int totalDeQuadros = tira.getWidth() / larguraDoQuadro;
-        int quadro = (contador / quadrosDoJogoPorQuadro) % totalDeQuadros;
+        int quadro = contador / quadrosDoJogoPorQuadro;
+        if (repetir) {
+            quadro = quadro % totalDeQuadros;
+        } else if (quadro >= totalDeQuadros) {
+            quadro = totalDeQuadros - 1;
+        }
         int origemX = quadro * larguraDoQuadro;
 
         boolean espelhar = entidade.isOlhandoParaEsquerda() != desenhoOlhaParaEsquerda;

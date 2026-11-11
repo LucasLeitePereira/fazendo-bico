@@ -16,6 +16,7 @@ public class Heroi extends Entidade {
     private int quadrosInvencivel;
     private int quadrosDoGolpe;
     private int quadrosDeRecarga;
+    private int quadrosDesdeAMorte;
 
     public Heroi(float x, float y) {
         super(x, y, 12, 12);
@@ -25,6 +26,10 @@ public class Heroi extends Entidade {
 
     @Override
     public void atualizar(Mapa mapa) {
+        if (!estaVivo()) {
+            quadrosDesdeAMorte++;
+            return;
+        }
         if (quadrosInvencivel > 0) {
             quadrosInvencivel--;
         }
@@ -100,6 +105,13 @@ public class Heroi extends Entidade {
 
     public boolean estaVivo() {
         return vida > 0;
+    }
+
+    /**
+     * Quantos quadros se passaram desde que a vida chegou a zero (para a animação de morte).
+     */
+    public int getQuadrosDesdeAMorte() {
+        return quadrosDesdeAMorte;
     }
 
     public boolean estaInvencivel() {

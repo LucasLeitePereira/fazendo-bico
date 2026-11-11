@@ -37,16 +37,20 @@ public abstract class Entidade {
     public boolean mover(float distanciaX, float distanciaY, Mapa mapa, Entidade[] obstaculos) {
         boolean moveuTudo = true;
 
+        // Se já estava encostada em alguém (um animal andou para cima dela),
+        // pode se mexer para sair dali.
+        boolean presaEmAlguem = colideComAlgum(obstaculos);
+
         float xAntigo = x;
         x = x + distanciaX;
-        if (estaBloqueada(mapa, obstaculos)) {
+        if (estaBloqueada(mapa, obstaculos, presaEmAlguem)) {
             x = xAntigo;
             moveuTudo = false;
         }
 
         float yAntigo = y;
         y = y + distanciaY;
-        if (estaBloqueada(mapa, obstaculos)) {
+        if (estaBloqueada(mapa, obstaculos, presaEmAlguem)) {
             y = yAntigo;
             moveuTudo = false;
         }
@@ -54,10 +58,17 @@ public abstract class Entidade {
         return moveuTudo;
     }
 
-    private boolean estaBloqueada(Mapa mapa, Entidade[] obstaculos) {
+    private boolean estaBloqueada(Mapa mapa, Entidade[] obstaculos, boolean ignorarObstaculos) {
         if (mapa.colide(getArea())) {
             return true;
         }
+        if (ignorarObstaculos) {
+            return false;
+        }
+        return colideComAlgum(obstaculos);
+    }
+
+    private boolean colideComAlgum(Entidade[] obstaculos) {
         for (int i = 0; i < obstaculos.length; i++) {
             if (obstaculos[i] != this && colide(obstaculos[i])) {
                 return true;

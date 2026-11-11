@@ -9,7 +9,7 @@ import modelo.Partida;
 
 /**
  * Cuida da raide: depois de uma pausa dramática, lança galinhas contra o herói
- * a partir de pontos fora da tela. A cada onda elas chegam mais rápido e em maior número.
+ * a partir de pontos fora da tela. A cada onda elas chegam um pouco mais rápido e em maior número.
  */
 public class ControleRaide {
     private static final int QUADROS_DE_PREPARACAO = 90;
@@ -17,8 +17,11 @@ public class ControleRaide {
     private static final int INTERVALO_INICIAL = 60;
     private static final int INTERVALO_MINIMO = 12;
     private static final int REDUCAO_DO_INTERVALO_POR_ONDA = 8;
-    private static final float VELOCIDADE_INICIAL = 1.8f;
-    private static final float AUMENTO_DE_VELOCIDADE_POR_ONDA = 0.15f;
+    private static final float VELOCIDADE_INICIAL = 1.0f;
+    private static final float AUMENTO_DE_VELOCIDADE_POR_ONDA = 0.08f;
+    // Abaixo da velocidade do herói, para sempre dar para escapar correndo.
+    private static final float VELOCIDADE_MAXIMA = 1.6f;
+    private static final float VARIACAO_DE_VELOCIDADE = 0.3f;
     private static final float DISTANCIA_DE_SURGIMENTO = 220;
     private static final float DISTANCIA_PARA_SUMIR = 400;
     private static final int ERRO_DE_MIRA = 16;
@@ -92,7 +95,10 @@ public class ControleRaide {
         float inicioY = heroi.getCentroY() + (float) Math.sin(angulo) * DISTANCIA_DE_SURGIMENTO;
         float alvoX = heroi.getX() + sorteio.nextInt(ERRO_DE_MIRA * 2 + 1) - ERRO_DE_MIRA;
         float alvoY = heroi.getY() + sorteio.nextInt(ERRO_DE_MIRA * 2 + 1) - ERRO_DE_MIRA;
-        float velocidadeDoVoo = velocidade + sorteio.nextFloat() * 0.6f;
+        float velocidadeDoVoo = velocidade + sorteio.nextFloat() * VARIACAO_DE_VELOCIDADE;
+        if (velocidadeDoVoo > VELOCIDADE_MAXIMA) {
+            velocidadeDoVoo = VELOCIDADE_MAXIMA;
+        }
 
         galinha.lancarContra(inicioX, inicioY, alvoX, alvoY, velocidadeDoVoo);
     }
