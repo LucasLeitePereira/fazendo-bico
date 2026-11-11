@@ -4,9 +4,11 @@ import java.awt.Rectangle;
 
 public class Heroi extends Entidade {
     public static final int VIDA_MAXIMA = 5;
+    public static final int QUADROS_DO_GOLPE = 20;
+    public static final int QUADROS_DA_REACAO_AO_DANO = 16;
     private static final int QUADROS_INVENCIVEL = 60;
-    private static final int QUADROS_DO_GOLPE = 12;
-    private static final int LARGURA_DO_GOLPE = 14;
+    private static final int MOMENTO_DO_ACERTO = 10;
+    private static final int ALTURA_DO_GOLPE = 24;
 
     private int vida = VIDA_MAXIMA;
     private Arma arma;
@@ -18,7 +20,7 @@ public class Heroi extends Entidade {
     public Heroi(float x, float y) {
         super(x, y, 12, 12);
         velocidade = 1.5f;
-        arma = new Arma("Graveto", 1, 14, 20);
+        arma = new Arma("Espada", 1, 18, 24);
     }
 
     @Override
@@ -37,18 +39,15 @@ public class Heroi extends Entidade {
         }
     }
 
-    /**
-     * Na diagonal o herói continua olhando para o lado, como nos jogos de visão de cima.
-     */
     public void virarPara(float passoX, float passoY) {
         if (passoX < 0) {
-            direcao = Direcao.ESQUERDA;
+            setDirecao(Direcao.ESQUERDA);
         } else if (passoX > 0) {
-            direcao = Direcao.DIREITA;
+            setDirecao(Direcao.DIREITA);
         } else if (passoY < 0) {
-            direcao = Direcao.CIMA;
+            setDirecao(Direcao.CIMA);
         } else if (passoY > 0) {
-            direcao = Direcao.BAIXO;
+            setDirecao(Direcao.BAIXO);
         }
     }
 
@@ -70,24 +69,22 @@ public class Heroi extends Entidade {
     }
 
     /**
-     * Retângulo à frente do herói onde o golpe acerta.
+     * O golpe só acerta num quadro da animação: quando a espada está esticada.
+     */
+    public boolean golpeAcertaAgora() {
+        return estaAtacando() && getQuadrosDesdeOInicioDoGolpe() == MOMENTO_DO_ACERTO;
+    }
+
+    /**
+     * Retângulo à frente do herói, do lado para onde ele olha, onde o golpe acerta.
      */
     public Rectangle getAreaDoGolpe() {
         int alcance = arma.getAlcance();
-        int centroX = (int) getCentroX();
-        int centroY = (int) getCentroY();
-        int metadeDaLargura = LARGURA_DO_GOLPE / 2;
-
-        switch (direcao) {
-            case CIMA:
-                return new Rectangle(centroX - metadeDaLargura, (int) y - alcance, LARGURA_DO_GOLPE, alcance);
-            case BAIXO:
-                return new Rectangle(centroX - metadeDaLargura, (int) y + altura, LARGURA_DO_GOLPE, alcance);
-            case ESQUERDA:
-                return new Rectangle((int) x - alcance, centroY - metadeDaLargura, alcance, LARGURA_DO_GOLPE);
-            default:
-                return new Rectangle((int) x + largura, centroY - metadeDaLargura, alcance, LARGURA_DO_GOLPE);
+        int topo = (int) getCentroY() - ALTURA_DO_GOLPE / 2;
+        if (olhandoParaEsquerda) {
+            return new Rectangle((int) x - alcance, topo, alcance, ALTURA_DO_GOLPE);
         }
+        return new Rectangle((int) x + largura, topo, alcance, ALTURA_DO_GOLPE);
     }
 
     public void receberDano(int dano) {
@@ -113,11 +110,23 @@ public class Heroi extends Entidade {
         return quadrosInvencivel;
     }
 
+    public boolean acabouDeLevarDano() {
+        return getQuadrosDesdeODano() < QUADROS_DA_REACAO_AO_DANO;
+    }
+
+    public int getQuadrosDesdeODano() {
+        return QUADROS_INVENCIVEL - quadrosInvencivel;
+    }
+
     public void setAndando(boolean andando) {
         this.andando = andando;
         if (!andando) {
             contadorPassos = 0;
         }
+    }
+
+    public boolean isAndando() {
+        return andando;
     }
 
     public int getVida() {

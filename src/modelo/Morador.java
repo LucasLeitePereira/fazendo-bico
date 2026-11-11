@@ -26,20 +26,10 @@ public class Morador extends Entidade {
     }
 
     public void olharPara(Entidade outra) {
-        float distanciaX = outra.getCentroX() - getCentroX();
-        float distanciaY = outra.getCentroY() - getCentroY();
-        if (Math.abs(distanciaX) > Math.abs(distanciaY)) {
-            if (distanciaX < 0) {
-                direcao = Direcao.ESQUERDA;
-            } else {
-                direcao = Direcao.DIREITA;
-            }
+        if (outra.getCentroX() < getCentroX()) {
+            setDirecao(Direcao.ESQUERDA);
         } else {
-            if (distanciaY < 0) {
-                direcao = Direcao.CIMA;
-            } else {
-                direcao = Direcao.BAIXO;
-            }
+            setDirecao(Direcao.DIREITA);
         }
     }
 

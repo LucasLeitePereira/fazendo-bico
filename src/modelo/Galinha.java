@@ -55,9 +55,9 @@ public class Galinha extends Entidade {
         velocidadeY = distanciaY / distancia * velocidadeDoVoo;
 
         if (velocidadeX < 0) {
-            direcao = Direcao.ESQUERDA;
+            setDirecao(Direcao.ESQUERDA);
         } else {
-            direcao = Direcao.DIREITA;
+            setDirecao(Direcao.DIREITA);
         }
     }
 
@@ -104,7 +104,7 @@ public class Galinha extends Entidade {
             contadorPassos = 0;
         } else {
             parada = false;
-            direcao = Direcao.values()[escolha];
+            setDirecao(Direcao.values()[escolha]);
         }
         quadrosAteMudarDePasseio = 40 + sorteio.nextInt(80);
     }

@@ -4,85 +4,107 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import modelo.Direcao;
 import modelo.Entidade;
 
 /**
- * Desenha uma entidade a partir de uma folha de sprites.
- * Na folha, cada linha é uma direção (baixo, esquerda, direita, cima)
- * e cada coluna é um quadro da animação. Se a folha tiver só uma linha,
- * ela é usada para todas as direções.
+ * Desenha uma entidade a partir de uma tira de sprites: os quadros da animação
+ * ficam lado a lado numa única linha. O desenho é espelhado quando a entidade
+ * olha para o lado contrário ao do desenho original.
  */
 public class Animacao {
-    private static final int QUADROS_DO_JOGO_POR_QUADRO_DA_ANIMACAO = 8;
-
-    private BufferedImage folha;
+    private BufferedImage tira;
     private int larguraDoQuadro;
     private int alturaDoQuadro;
     private Color corReserva;
+    private int peX;
+    private int peY;
+    private boolean desenhoOlhaParaEsquerda = false;
+    private int quadrosDoJogoPorQuadro = 6;
 
-    public Animacao(BufferedImage folha, int larguraDoQuadro, int alturaDoQuadro, Color corReserva) {
-        this.folha = folha;
+    public Animacao(BufferedImage tira, int larguraDoQuadro, int alturaDoQuadro, Color corReserva) {
+        this.tira = tira;
         this.larguraDoQuadro = larguraDoQuadro;
         this.alturaDoQuadro = alturaDoQuadro;
         this.corReserva = corReserva;
-    }
-
-    public boolean temImagem() {
-        return folha != null;
+        peX = larguraDoQuadro / 2;
+        peY = alturaDoQuadro - 1;
     }
 
     /**
-     * O sprite é desenhado com os pés na base da área da entidade.
-     * A elevação levanta o desenho (usada nas galinhas voando).
+     * Ponto do quadro onde ficam os pés do personagem. Ele é colocado
+     * em cima da base da área da entidade.
+     */
+    public void definirPe(int x, int y) {
+        peX = x;
+        peY = y;
+    }
+
+    public void setDesenhoOlhaParaEsquerda(boolean desenhoOlhaParaEsquerda) {
+        this.desenhoOlhaParaEsquerda = desenhoOlhaParaEsquerda;
+    }
+
+    /**
+     * Quantos quadros do jogo cada quadro da animação fica na tela (o jogo roda a 60 por segundo).
+     */
+    public void setQuadrosDoJogoPorQuadro(int quadrosDoJogoPorQuadro) {
+        this.quadrosDoJogoPorQuadro = quadrosDoJogoPorQuadro;
+    }
+
+    public boolean temImagem() {
+        return tira != null;
+    }
+
+    /**
+     * O contador diz em que ponto da animação estamos. A elevação levanta o desenho
+     * (usada nas galinhas voando).
      */
     public void desenhar(Graphics2D g, Entidade entidade, int contador, int cameraX, int cameraY, int elevacao) {
-        int telaX = (int) entidade.getX() - cameraX;
-        int telaY = (int) entidade.getY() - cameraY - elevacao;
+        int peNaTelaX = (int) entidade.getCentroX() - cameraX;
+        int peNaTelaY = (int) (entidade.getY() + entidade.getAltura()) - cameraY - elevacao;
 
-        if (folha == null) {
-            desenharReserva(g, entidade, telaX, telaY);
+        if (tira == null) {
+            desenharReserva(g, entidade, peNaTelaX, peNaTelaY);
             return;
         }
 
-        int colunas = folha.getWidth() / larguraDoQuadro;
-        int linhas = folha.getHeight() / alturaDoQuadro;
-        int coluna = (contador / QUADROS_DO_JOGO_POR_QUADRO_DA_ANIMACAO) % colunas;
-        int linha = 0;
-        if (linhas > 1) {
-            linha = entidade.getDirecao().ordinal() % linhas;
+        int totalDeQuadros = tira.getWidth() / larguraDoQuadro;
+        int quadro = (contador / quadrosDoJogoPorQuadro) % totalDeQuadros;
+        int origemX = quadro * larguraDoQuadro;
+
+        boolean espelhar = entidade.isOlhandoParaEsquerda() != desenhoOlhaParaEsquerda;
+        int destinoY = peNaTelaY - peY;
+
+        if (espelhar) {
+            int destinoX = peNaTelaX - (larguraDoQuadro - peX);
+            g.drawImage(tira,
+                    destinoX + larguraDoQuadro, destinoY, destinoX, destinoY + alturaDoQuadro,
+                    origemX, 0, origemX + larguraDoQuadro, alturaDoQuadro,
+                    null);
+        } else {
+            int destinoX = peNaTelaX - peX;
+            g.drawImage(tira,
+                    destinoX, destinoY, destinoX + larguraDoQuadro, destinoY + alturaDoQuadro,
+                    origemX, 0, origemX + larguraDoQuadro, alturaDoQuadro,
+                    null);
         }
-
-        int origemX = coluna * larguraDoQuadro;
-        int origemY = linha * alturaDoQuadro;
-        int destinoX = telaX + entidade.getLargura() / 2 - larguraDoQuadro / 2;
-        int destinoY = telaY + entidade.getAltura() - alturaDoQuadro;
-
-        g.drawImage(folha,
-                destinoX, destinoY, destinoX + larguraDoQuadro, destinoY + alturaDoQuadro,
-                origemX, origemY, origemX + larguraDoQuadro, origemY + alturaDoQuadro,
-                null);
     }
 
     /**
      * Sem imagem: um retângulo colorido com uma faixa escura do lado para onde a entidade olha.
      */
-    private void desenharReserva(Graphics2D g, Entidade entidade, int telaX, int telaY) {
+    private void desenharReserva(Graphics2D g, Entidade entidade, int peNaTelaX, int peNaTelaY) {
         int largura = entidade.getLargura();
         int altura = entidade.getAltura();
+        int x = peNaTelaX - largura / 2;
+        int y = peNaTelaY - altura;
         g.setColor(corReserva);
-        g.fillRect(telaX, telaY, largura, altura);
+        g.fillRect(x, y, largura, altura);
 
         g.setColor(corReserva.darker().darker());
-        Direcao direcao = entidade.getDirecao();
-        if (direcao == Direcao.CIMA) {
-            g.fillRect(telaX, telaY, largura, 3);
-        } else if (direcao == Direcao.BAIXO) {
-            g.fillRect(telaX, telaY + altura - 3, largura, 3);
-        } else if (direcao == Direcao.ESQUERDA) {
-            g.fillRect(telaX, telaY, 3, altura);
+        if (entidade.isOlhandoParaEsquerda()) {
+            g.fillRect(x, y, 3, altura);
         } else {
-            g.fillRect(telaX + largura - 3, telaY, 3, altura);
+            g.fillRect(x + largura - 3, y, 3, altura);
         }
     }
 }

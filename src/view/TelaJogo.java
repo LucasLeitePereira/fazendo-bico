@@ -46,9 +46,12 @@ public class TelaJogo extends JPanel {
 
     private BufferedImage imagemTelaInicial;
     private BufferedImage imagemGolpe;
-    private Animacao animacaoHeroi;
+    private Animacao animacaoHeroiParado;
+    private Animacao animacaoHeroiCorrendo;
     private Animacao animacaoHeroiAtacando;
-    private Animacao animacaoGalinha;
+    private Animacao animacaoHeroiComDano;
+    private Animacao animacaoGalinhaAndando;
+    private Animacao animacaoGalinhaVoando;
     private Animacao[] animacaoMoradores = new Animacao[5];
     private Map<Character, BufferedImage> imagensDosTiles = new HashMap<Character, BufferedImage>();
 
@@ -62,14 +65,18 @@ public class TelaJogo extends JPanel {
         imagemTelaInicial = imagens.carregar("/telas/inicial.png");
         imagemGolpe = imagens.carregar("/sprites/golpe.png");
 
-        // Para sprites de outro tamanho, troque os dois números (largura e altura de cada quadro).
-        animacaoHeroi = new Animacao(imagens.carregar("/sprites/heroi.png"), 16, 16, new Color(60, 170, 80));
-        animacaoHeroiAtacando = new Animacao(imagens.carregar("/sprites/heroi_ataque.png"), 16, 16, new Color(60, 170, 80));
-        animacaoGalinha = new Animacao(imagens.carregar("/sprites/galinha.png"), 16, 16, Color.WHITE);
-        animacaoMoradores[1] = new Animacao(imagens.carregar("/sprites/morador1.png"), 16, 16, new Color(90, 90, 200));
-        animacaoMoradores[2] = new Animacao(imagens.carregar("/sprites/morador2.png"), 16, 16, new Color(200, 90, 160));
-        animacaoMoradores[3] = new Animacao(imagens.carregar("/sprites/morador3.png"), 16, 16, new Color(150, 110, 60));
-        animacaoMoradores[4] = new Animacao(imagens.carregar("/sprites/morador4.png"), 16, 16, new Color(230, 160, 40));
+        animacaoHeroiParado = criarAnimacaoDePessoa(imagens, "heroi_parado", new Color(60, 170, 80), 8);
+        animacaoHeroiCorrendo = criarAnimacaoDePessoa(imagens, "heroi_correndo", new Color(60, 170, 80), 5);
+        animacaoHeroiAtacando = criarAnimacaoDePessoa(imagens, "heroi_ataque", new Color(60, 170, 80), 2);
+        animacaoHeroiComDano = criarAnimacaoDePessoa(imagens, "heroi_dano", new Color(60, 170, 80), 2);
+        animacaoMoradores[1] = criarAnimacaoDePessoa(imagens, "morador1", new Color(90, 90, 200), 9);
+        animacaoMoradores[2] = criarAnimacaoDePessoa(imagens, "morador2", new Color(200, 90, 160), 10);
+        animacaoMoradores[3] = criarAnimacaoDePessoa(imagens, "morador3", new Color(150, 110, 60), 11);
+        animacaoMoradores[4] = criarAnimacaoDePessoa(imagens, "morador4", new Color(230, 160, 40), 7);
+
+        BufferedImage imagemDaGalinha = imagens.carregar("/sprites/galinha.png");
+        animacaoGalinhaAndando = criarAnimacaoDeGalinha(imagemDaGalinha, 8);
+        animacaoGalinhaVoando = criarAnimacaoDeGalinha(imagemDaGalinha, 3);
 
         carregarTile(imagens, '.', "grama");
         carregarTile(imagens, ',', "flor");
@@ -81,6 +88,35 @@ public class TelaJogo extends JPanel {
         carregarTile(imagens, 'P', "porta");
         carregarTile(imagens, 'F', "cerca");
         carregarTile(imagens, 'S', "saida");
+    }
+
+    /**
+     * Os personagens do pacote Sunnyside World têm quadros de 96x64
+     * com os pés no ponto (48, 39) e olham para a direita.
+     */
+    private Animacao criarAnimacaoDePessoa(Imagens imagens, String nome, Color corReserva, int velocidade) {
+        Animacao animacao = new Animacao(imagens.carregar("/sprites/" + nome + ".png"), 96, 64, corReserva);
+        animacao.definirPe(48, 39);
+        animacao.setQuadrosDoJogoPorQuadro(velocidade);
+        return animacao;
+    }
+
+    /**
+     * A galinha tem quadros de 32x32, com os pés no ponto (15, 24), e olha para a esquerda.
+     */
+    private Animacao criarAnimacaoDeGalinha(BufferedImage imagem, int velocidade) {
+        Animacao animacao = new Animacao(imagem, 32, 32, Color.WHITE);
+        animacao.definirPe(15, 24);
+        animacao.setDesenhoOlhaParaEsquerda(true);
+        animacao.setQuadrosDoJogoPorQuadro(velocidade);
+        return animacao;
+    }
+
+    /**
+     * Relógio da tela, para animações que rodam sempre (personagens parados).
+     */
+    private int quadroAtualDaTela() {
+        return (int) (System.currentTimeMillis() / 16);
     }
 
     private void carregarTile(Imagens imagens, char tile, String nome) {
@@ -272,7 +308,7 @@ public class TelaJogo extends JPanel {
         for (int i = 0; i < moradores.length; i++) {
             Morador morador = moradores[i];
             Animacao animacao = animacaoMoradores[morador.getNumero()];
-            animacao.desenhar(g, morador, 0, cameraX, cameraY, 0);
+            animacao.desenhar(g, morador, quadroAtualDaTela(), cameraX, cameraY, 0);
         }
     }
 
@@ -287,12 +323,12 @@ public class TelaJogo extends JPanel {
                 continue;
             }
 
-            int elevacao = 0;
             if (galinha.isVoando()) {
-                elevacao = ELEVACAO_DO_VOO;
                 desenharSombra(g, galinha.getArea(), cameraX, cameraY);
+                animacaoGalinhaVoando.desenhar(g, galinha, galinha.getContadorPassos(), cameraX, cameraY, ELEVACAO_DO_VOO);
+            } else {
+                animacaoGalinhaAndando.desenhar(g, galinha, galinha.getContadorPassos(), cameraX, cameraY, 0);
             }
-            animacaoGalinha.desenhar(g, galinha, galinha.getContadorPassos(), cameraX, cameraY, elevacao);
         }
     }
 
@@ -302,16 +338,23 @@ public class TelaJogo extends JPanel {
     }
 
     private void desenharHeroi(Graphics2D g, Heroi heroi, int cameraX, int cameraY) {
-        boolean invisivelNestePiscar = heroi.estaInvencivel() && heroi.getQuadrosInvencivel() % 8 < 4;
-        if (!invisivelNestePiscar) {
-            if (heroi.estaAtacando() && animacaoHeroiAtacando.temImagem()) {
-                animacaoHeroiAtacando.desenhar(g, heroi, heroi.getQuadrosDesdeOInicioDoGolpe(), cameraX, cameraY, 0);
-            } else {
-                animacaoHeroi.desenhar(g, heroi, heroi.getContadorPassos(), cameraX, cameraY, 0);
+        if (heroi.estaAtacando()) {
+            animacaoHeroiAtacando.desenhar(g, heroi, heroi.getQuadrosDesdeOInicioDoGolpe(), cameraX, cameraY, 0);
+        } else if (heroi.estaInvencivel() && heroi.acabouDeLevarDano()) {
+            animacaoHeroiComDano.desenhar(g, heroi, heroi.getQuadrosDesdeODano(), cameraX, cameraY, 0);
+        } else {
+            boolean invisivelNestePiscar = heroi.estaInvencivel() && heroi.getQuadrosInvencivel() % 8 < 4;
+            if (!invisivelNestePiscar) {
+                if (heroi.isAndando()) {
+                    animacaoHeroiCorrendo.desenhar(g, heroi, heroi.getContadorPassos(), cameraX, cameraY, 0);
+                } else {
+                    animacaoHeroiParado.desenhar(g, heroi, quadroAtualDaTela(), cameraX, cameraY, 0);
+                }
             }
         }
 
-        if (heroi.estaAtacando()) {
+        // O sprite de ataque já desenha a espada; o retângulo só aparece se ele faltar.
+        if (heroi.estaAtacando() && !animacaoHeroiAtacando.temImagem()) {
             Rectangle golpe = heroi.getAreaDoGolpe();
             int x = golpe.x - cameraX;
             int y = golpe.y - cameraY;

@@ -328,6 +328,8 @@ public class ControleJogo {
             heroi.atacar();
             heroi.setAndando(false);
             som.tocarEfeito("golpe");
+        }
+        if (heroi.golpeAcertaAgora()) {
             aplicarGolpe();
         }
 
@@ -351,7 +353,7 @@ public class ControleJogo {
         for (int i = 0; i < galinhas.length; i++) {
             Galinha galinha = galinhas[i];
             if (galinha.isAtiva() && areaDoGolpe.intersects(galinha.getArea())) {
-                boolean morreu = galinha.receberGolpe(heroi.getArma().getDano(), heroi.getDirecao(), mundo.getMapa());
+                boolean morreu = galinha.receberGolpe(heroi.getArma().getDano(), heroi.getDirecaoDoOlhar(), mundo.getMapa());
                 if (morreu) {
                     galinhaDerrotada();
                 } else {

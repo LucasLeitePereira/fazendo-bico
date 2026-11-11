@@ -3,9 +3,10 @@ out/
 *.class
 recorde.txt
 
-# Material da entrega e anotações pessoais
+# Material da entrega, anotações pessoais e o pacote de assets original (só o que o jogo usa vai para recursos/)
 entrada/
 IDEA.md
+ASSENTS/
 
 # IDEs
 .idea/

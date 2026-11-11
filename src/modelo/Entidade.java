@@ -14,6 +14,7 @@ public abstract class Entidade {
     protected int altura;
     protected float velocidade;
     protected Direcao direcao = Direcao.BAIXO;
+    protected boolean olhandoParaEsquerda;
     protected int contadorPassos;
 
     public Entidade(float x, float y, int largura, int altura) {
@@ -116,8 +117,28 @@ public abstract class Entidade {
         return direcao;
     }
 
+    /**
+     * Os sprites só olham para os lados. Ao andar para cima ou para baixo,
+     * a entidade continua olhando para o último lado.
+     */
     public void setDirecao(Direcao direcao) {
         this.direcao = direcao;
+        if (direcao == Direcao.ESQUERDA) {
+            olhandoParaEsquerda = true;
+        } else if (direcao == Direcao.DIREITA) {
+            olhandoParaEsquerda = false;
+        }
+    }
+
+    public boolean isOlhandoParaEsquerda() {
+        return olhandoParaEsquerda;
+    }
+
+    public Direcao getDirecaoDoOlhar() {
+        if (olhandoParaEsquerda) {
+            return Direcao.ESQUERDA;
+        }
+        return Direcao.DIREITA;
     }
 
     public int getContadorPassos() {

@@ -97,15 +97,14 @@ Todos os arquivos são opcionais. Sem uma imagem, o jogo desenha um retângulo c
 | Arquivo | O que é |
 |---|---|
 | `recursos/telas/inicial.png` | Fundo da tela inicial (320×240 ou 640×480). Se tiver o nome do jogo desenhado, ótimo: o texto não é escrito por cima |
-| `recursos/sprites/heroi.png` | Herói andando |
-| `recursos/sprites/heroi_ataque.png` | Herói atacando (opcional; sem ele usa o sprite de andar) |
-| `recursos/sprites/galinha.png` | Galinha |
-| `recursos/sprites/morador1.png` a `morador4.png` | Prefeito, Dona Cida, Seu Juca e Tico |
-| `recursos/sprites/golpe.png` | Efeito do golpe (esticado na área do golpe) |
+| `recursos/sprites/heroi_parado.png`, `heroi_correndo.png`, `heroi_ataque.png`, `heroi_dano.png` | Herói (tiras do Sunnyside World: idle, run, sword, hurt) |
+| `recursos/sprites/galinha.png` | Galinha (os 4 quadros de `spr_deco_chicken_01` lado a lado) |
+| `recursos/sprites/morador1.png` a `morador4.png` | Prefeito, Dona Cida, Seu Juca e Tico (o herói parado com outras cores de camisa e cabelo) |
+| `recursos/sprites/golpe.png` | Efeito do golpe, só usado se faltar `heroi_ataque.png` |
 | `recursos/sprites/coracao.png`, `coracao_vazio.png` | Vida no HUD |
 | `recursos/tiles/grama.png`, `flor.png`, `caminho.png`, `saida.png`, `porta.png`, `arvore.png`, `agua.png`, `parede.png`, `telhado.png`, `cerca.png` | Tiles de 16×16 |
 
-**Folhas de sprites:** cada quadro tem 16×16 pixels; cada linha é uma direção, nesta ordem: baixo, esquerda, direita, cima; cada coluna é um quadro da animação. Uma folha com uma linha só vale para todas as direções. Para sprites de outro tamanho, troque os números `16, 16` nas linhas de `new Animacao(...)` em `src/view/TelaJogo.java`.
+**Tiras de sprites:** os quadros da animação ficam lado a lado numa linha só. Os personagens têm quadros de 96×64, com os pés no ponto (48, 39), e olham para a direita (o jogo espelha para a esquerda). A galinha tem quadros de 32×32, com os pés em (15, 24), e olha para a esquerda. Esses números ficam em `criarAnimacaoDePessoa` e `criarAnimacaoDeGalinha`, em `src/view/TelaJogo.java`.
 
 **Sons (WAV PCM de 16 bits; MP3 e OGG não funcionam)**
 
@@ -129,4 +128,6 @@ As músicas ficam inteiras na memória: prefira 22 kHz ou 44 kHz e alguns minuto
 
 ## Créditos
 
-Liste aqui a origem e a licença de cada sprite, som e música usados.
+- Personagens e galinha: **Sunnyside World**, de Daniel Diggle (itch.io). Confirmar os termos da licença na página do pacote.
+
+Liste aqui a origem e a licença de cada outro sprite, som e música usados.
