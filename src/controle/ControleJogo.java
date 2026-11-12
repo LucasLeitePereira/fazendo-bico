@@ -43,7 +43,7 @@ public class ControleJogo {
         "Melhor ver o que está acontecendo na vila. (Setas para andar, Espaço para falar)"
     };
     private static final String[] FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO = {
-        "O campo fica depois da praia, a leste. É só seguir a areia.",
+        "O campo fica a leste. Siga a estrada da vila até o fim, lá na praia.",
         "Boa sorte. Você vai precisar."
     };
     private static final String[] FALAS_DA_SAIDA_FECHADA = {
@@ -212,7 +212,7 @@ public class ControleJogo {
 
         moradores[0] = criarMorador(mapa, 1, "Prefeito Bento", new String[] {
             "Ah, finalmente acordou! Tenho um serviço pra você.",
-            "Tem galinhas no campo, depois da praia a leste. Derrote quantas puder.",
+            "Tem galinhas no campo, no fim da estrada, a leste. Derrote quantas puder.",
             "Pago 10 moedas por galinha!",
             "...Por que tanto? Ah, você vai descobrir. Digo, não é nada!"
         }, true);

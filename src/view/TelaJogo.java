@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
@@ -205,6 +206,9 @@ public class TelaJogo extends JPanel {
         }
 
         desenharCena(g, mapa, cameraX, cameraY, true);
+        if (!noCampo && partida.isMissaoAceita() && !mundo.getDialogo().isAtivo()) {
+            desenharSetaDaSaida(g, mapa.getSaida(), cameraX, cameraY);
+        }
 
         hud.desenhar(g, heroi, partida, noCampo);
         if (mundo.getDialogo().isAtivo()) {
@@ -470,6 +474,45 @@ public class TelaJogo extends JPanel {
             int y = (int) (morador.getY() + morador.getAltura()) - cameraY - 26 - balao.getHeight() - pulo;
             g.drawImage(balao, x, y, null);
         }
+    }
+
+    /**
+     * Seta amarela que mostra o caminho até a saída. Com a saída na tela, a seta fica
+     * ao lado dela; fora da tela, a seta fica na borda, apontando para onde ela está.
+     */
+    private void desenharSetaDaSaida(Graphics2D g, Rectangle saida, int cameraX, int cameraY) {
+        if (saida == null) {
+            return;
+        }
+        int margem = 14;
+        float alvoX = saida.x + saida.width / 2.0f - cameraX;
+        float alvoY = saida.y + saida.height / 2.0f - cameraY;
+        float setaX = alvoX;
+        float setaY = alvoY;
+        boolean naTela = alvoX >= margem && alvoX <= LARGURA - margem && alvoY >= margem && alvoY <= ALTURA - margem;
+        if (naTela) {
+            // A saída fica numa borda do mapa: a seta aponta para ela vindo do lado de dentro.
+            setaX = alvoX - 22;
+            if (alvoX < LARGURA / 2) {
+                setaX = alvoX + 22;
+            }
+        } else {
+            setaX = Math.max(margem, Math.min(LARGURA - margem, alvoX));
+            setaY = Math.max(margem + 24, Math.min(ALTURA - margem, alvoY));
+        }
+        double angulo = Math.atan2(alvoY - setaY, alvoX - setaX);
+        double pulo = Math.abs(Math.sin(System.currentTimeMillis() / 160.0)) * 4;
+
+        AffineTransform antes = g.getTransform();
+        g.translate(setaX - Math.cos(angulo) * pulo, setaY - Math.sin(angulo) * pulo);
+        g.rotate(angulo);
+        int[] pontasX = { 8, -1, -1, -8, -8, -1, -1 };
+        int[] pontasY = { 0, -7, -3, -3, 3, 3, 7 };
+        g.setColor(new Color(255, 215, 70));
+        g.fillPolygon(pontasX, pontasY, pontasX.length);
+        g.setColor(new Color(90, 45, 20));
+        g.drawPolygon(pontasX, pontasY, pontasX.length);
+        g.setTransform(antes);
     }
 
     // ---------- Tela inicial ----------

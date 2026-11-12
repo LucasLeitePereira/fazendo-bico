@@ -54,6 +54,10 @@ public class Hud {
             if (balaoAlerta != null) {
                 g.drawImage(balaoAlerta, 4 + largura - 9, 24, null);
             }
+        } else if (!noCampo) {
+            String aviso = "Campo: siga a estrada para o leste";
+            g.setFont(Texto.NORMAL);
+            desenharEtiqueta(g, aviso, 4, 22, Texto.largura(g, aviso) + 12);
         }
 
         if (partida.getQuadrosTremendo() > 30 && partida.isRaideAtiva()) {
