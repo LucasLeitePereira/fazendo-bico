@@ -7,6 +7,7 @@ import java.awt.event.KeyListener;
  * Guarda o estado das teclas.
  * Setas: "segurando" (vale enquanto a tecla estiver apertada).
  * Enter, Espaço, Esc e as setas no menu: "apertou" (vale uma vez por toque e é consumido).
+ * F11 ou Alt+Enter: liga e desliga a tela cheia.
  */
 public class Teclado implements KeyListener {
     private boolean cima;
@@ -22,6 +23,7 @@ public class Teclado implements KeyListener {
     private boolean apertouConfirmar;
     private boolean apertouAcao;
     private boolean apertouVoltar;
+    private boolean apertouTelaCheia;
 
     @Override
     public void keyPressed(KeyEvent evento) {
@@ -48,7 +50,14 @@ public class Teclado implements KeyListener {
             case KeyEvent.VK_D:
                 direita = true;
                 break;
+            case KeyEvent.VK_F11:
+                apertouTelaCheia = true;
+                break;
             case KeyEvent.VK_ENTER:
+                if (evento.isAltDown()) {
+                    apertouTelaCheia = true;
+                    break;
+                }
                 if (!segurandoConfirmar) {
                     apertouConfirmar = true;
                 }
@@ -144,6 +153,15 @@ public class Teclado implements KeyListener {
     public boolean consumirVoltar() {
         boolean apertou = apertouVoltar;
         apertouVoltar = false;
+        return apertou;
+    }
+
+    /**
+     * A tela cheia vale em qualquer cena, por isso não é apagada por limparToques.
+     */
+    public boolean consumirTelaCheia() {
+        boolean apertou = apertouTelaCheia;
+        apertouTelaCheia = false;
         return apertou;
     }
 

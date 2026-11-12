@@ -4,10 +4,12 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.VolatileImage;
 import java.util.Random;
 
 import javax.swing.JPanel;
@@ -38,6 +40,9 @@ public class TelaJogo extends JPanel {
     public static final int ESCALA = 2;
 
     private static final int QUADROS_CLAREANDO_NA_ENTRADA = 50;
+    private static final int ESCALA_MAXIMA_DA_CENA = 3;
+    private static final long LIMITE_DE_QUADRO_LENTO = 15 * 1000000L;
+    private static final int QUADROS_LENTOS_PARA_REDUZIR = 30;
     private static final Color COR_DO_FUNDO = new Color(30, 30, 50);
     private static final Color COR_DO_TEXTO_ESCURO = new Color(70, 42, 25);
     private static final Color COR_DO_TITULO = new Color(255, 214, 90);
@@ -66,6 +71,9 @@ public class TelaJogo extends JPanel {
     private CaixaNoveFatias caixaClara;
     private CaixaNoveFatias caixaEscura;
 
+    private VolatileImage imagemDaCena;
+    private int escalaMaximaDaCena = ESCALA_MAXIMA_DA_CENA;
+    private int quadrosLentosSeguidos;
     private Animacao animacaoHeroiParado;
     private Animacao animacaoHeroiCorrendo;
     private Animacao animacaoHeroiCaminhando;
@@ -85,6 +93,9 @@ public class TelaJogo extends JPanel {
         this.mundo = mundo;
         setPreferredSize(new Dimension(LARGURA * ESCALA, ALTURA * ESCALA));
         setBackground(COR_DO_FUNDO);
+        setOpaque(true);
+        // O quadro já é montado numa imagem própria; o buffer extra do Swing só gastaria tempo.
+        setDoubleBuffered(false);
 
         Imagens imagens = new Imagens();
         cenario = new Cenario(imagens);
@@ -168,13 +179,91 @@ public class TelaJogo extends JPanel {
 
     @Override
     public void paintComponent(Graphics g) {
-        super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        g2.scale(ESCALA, ESCALA);
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
+        // A arte é feita em 320x240. Ela é ampliada para caber na janela (ou na tela cheia)
+        // sem distorcer; o que sobra nas bordas fica preto.
+        double escala = Math.min(getWidth() / (double) LARGURA, getHeight() / (double) ALTURA);
+        int larguraDesenhada = (int) Math.round(LARGURA * escala);
+        int alturaDesenhada = (int) Math.round(ALTURA * escala);
+        int margemX = (getWidth() - larguraDesenhada) / 2;
+        int margemY = (getHeight() - alturaDesenhada) / 2;
+        // Só as faixas fora da imagem são pintadas de preto; o resto é coberto pela cena.
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, margemX, getHeight());
+        g2.fillRect(margemX + larguraDesenhada, 0, getWidth() - margemX - larguraDesenhada, getHeight());
+        g2.fillRect(0, 0, getWidth(), margemY);
+        g2.fillRect(0, margemY + alturaDesenhada, getWidth(), getHeight() - margemY - alturaDesenhada);
+
+        // A cena é desenhada numa imagem com ampliação inteira (no máximo 3x) e essa imagem
+        // é esticada uma vez só para a tela. Desenhar tudo direto em 1920x1080 fica lento.
+        int escalaDaCena = (int) Math.floor(escala);
+        if (escalaDaCena < 1) {
+            escalaDaCena = 1;
+        }
+        if (escalaDaCena > escalaMaximaDaCena) {
+            escalaDaCena = escalaMaximaDaCena;
+        }
+        long inicioDoQuadro = System.nanoTime();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        GraphicsConfiguration configuracao = getGraphicsConfiguration();
+        if (configuracao == null) {
+            // Ainda fora da tela: desenha numa imagem comum.
+            BufferedImage comum = new BufferedImage(LARGURA * escalaDaCena, ALTURA * escalaDaCena, BufferedImage.TYPE_INT_RGB);
+            Graphics2D gc = comum.createGraphics();
+            desenharNaImagemDaCena(gc, escalaDaCena, comum.getWidth(), comum.getHeight());
+            g2.drawImage(comum, margemX, margemY, larguraDesenhada, alturaDesenhada, null);
+            return;
+        }
+
+        // A imagem da cena fica na placa de vídeo (VolatileImage). Se a placa perder o conteúdo
+        // (por exemplo, ao trocar de janela para tela cheia), a cena é desenhada de novo.
+        int tentativas = 0;
+        do {
+            if (imagemDaCena == null || imagemDaCena.getWidth() != LARGURA * escalaDaCena
+                    || imagemDaCena.validate(configuracao) == VolatileImage.IMAGE_INCOMPATIBLE) {
+                imagemDaCena = configuracao.createCompatibleVolatileImage(LARGURA * escalaDaCena, ALTURA * escalaDaCena);
+            }
+            Graphics2D gc = imagemDaCena.createGraphics();
+            desenharNaImagemDaCena(gc, escalaDaCena, imagemDaCena.getWidth(), imagemDaCena.getHeight());
+            g2.drawImage(imagemDaCena, margemX, margemY, larguraDesenhada, alturaDesenhada, null);
+            tentativas++;
+        } while (imagemDaCena.contentsLost() && tentativas < 3);
+        verificarSeEstaLento(System.nanoTime() - inicioDoQuadro, escalaDaCena);
+    }
+
+    /**
+     * Se o computador não der conta de desenhar em 60 quadros por segundo,
+     * a cena passa a ser montada com menos detalhe (3x, depois 2x) antes de ser esticada.
+     */
+    private void verificarSeEstaLento(long nanossegundos, int escalaUsada) {
+        if (escalaUsada < escalaMaximaDaCena || escalaMaximaDaCena <= 1) {
+            quadrosLentosSeguidos = 0;
+            return;
+        }
+        if (nanossegundos > LIMITE_DE_QUADRO_LENTO) {
+            quadrosLentosSeguidos++;
+        } else {
+            quadrosLentosSeguidos = 0;
+        }
+        if (quadrosLentosSeguidos >= QUADROS_LENTOS_PARA_REDUZIR) {
+            escalaMaximaDaCena--;
+            quadrosLentosSeguidos = 0;
+        }
+    }
+
+    private void desenharNaImagemDaCena(Graphics2D gc, int escalaDaCena, int largura, int altura) {
+        gc.setColor(COR_DO_FUNDO);
+        gc.fillRect(0, 0, largura, altura);
+        gc.scale(escalaDaCena, escalaDaCena);
+        gc.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        gc.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        gc.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        desenharCenaAtual(gc);
+        gc.dispose();
+    }
+
+    private void desenharCenaAtual(Graphics2D g2) {
         Partida partida = mundo.getPartida();
         switch (partida.getCena()) {
             case INICIAL:

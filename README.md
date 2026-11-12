@@ -27,6 +27,9 @@ Em uma IDE (Eclipse, IntelliJ, NetBeans), marque `src` **e** `recursos` como pas
 | Espaço ou Z | Conversar (vila), atacar (campo), avançar o diálogo |
 | Enter | Confirmar |
 | Esc | Voltar à tela inicial / sair |
+| F11 ou Alt+Enter | Liga e desliga a tela cheia |
+
+A janela também pode ser esticada ou maximizada. A arte é desenhada em 320×240 e ampliada para caber na tela, com faixas pretas nas sobras. Para não pesar, a cena é montada numa escala inteira de até 3× e depois esticada. Se o PC estiver lento, essa escala cai sozinha.
 
 ## Estrutura (MVC)
 

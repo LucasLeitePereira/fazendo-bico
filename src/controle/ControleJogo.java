@@ -92,6 +92,10 @@ public class ControleJogo {
     }
 
     private void atualizar() {
+        if (teclado.consumirTelaCheia()) {
+            janela.alternarTelaCheia();
+            teclado.limparToques();
+        }
         switch (mundo.getPartida().getCena()) {
             case INICIAL:
                 atualizarTelaInicial();
