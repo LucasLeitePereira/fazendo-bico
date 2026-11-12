@@ -10,6 +10,7 @@ public class Mundo {
     public static final int MAXIMO_DE_EFEITOS = 48;
 
     private Partida partida = new Partida();
+    private Configuracao configuracao = new Configuracao();
     private Dialogo dialogo = new Dialogo();
     private Mapa mapa;
     private Mapa mapaDoFundo;
@@ -93,6 +94,10 @@ public class Mundo {
             juntos[moradores.length + i] = animais[i];
         }
         obstaculos = juntos;
+    }
+
+    public Configuracao getConfiguracao() {
+        return configuracao;
     }
 
     public Partida getPartida() {

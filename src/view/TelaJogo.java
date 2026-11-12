@@ -15,6 +15,8 @@ import java.util.Random;
 import javax.swing.JPanel;
 
 import modelo.Animal;
+import modelo.Cena;
+import modelo.Configuracao;
 import modelo.Decoracao;
 import modelo.Dialogo;
 import modelo.Efeito;
@@ -279,6 +281,25 @@ public class TelaJogo extends JPanel {
                 desenharTelaFinal(g2, partida);
                 break;
         }
+        if (partida.getCena() != Cena.INICIAL) {
+            desenharAvisoDeVolume(g2);
+        }
+    }
+
+    /**
+     * Depois de apertar - ou +, mostra o volume da música por um instante no alto da tela.
+     */
+    private void desenharAvisoDeVolume(Graphics2D g) {
+        Configuracao configuracao = mundo.getConfiguracao();
+        if (configuracao.getQuadrosMostrandoVolume() <= 0) {
+            return;
+        }
+        String texto = "Música: " + configuracao.getVolumeDaMusica() + "%";
+        g.setFont(Texto.NORMAL);
+        int largura = Texto.largura(g, texto) + 20;
+        int x = (LARGURA - largura) / 2;
+        caixaEscura.desenhar(g, x, 4, largura, 20);
+        Texto.escrever(g, texto, x + 10, 17, Color.WHITE);
     }
 
     // ---------- Vila e campo ----------
@@ -629,8 +650,12 @@ public class TelaJogo extends JPanel {
         desenharMenu(g, partida);
 
         g.setFont(Texto.NORMAL);
+        String dica = "Setas para escolher, Enter para confirmar";
+        if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
+            dica = "Esquerda e direita mudam o volume";
+        }
         if (piscando(500)) {
-            Texto.escreverCentralizado(g, "Setas para escolher, Enter para confirmar", 222, Color.WHITE);
+            Texto.escreverCentralizado(g, dica, 222, Color.WHITE);
         }
         if (moeda != null) {
             g.drawImage(moeda, 5, ALTURA - 15, null);
@@ -681,13 +706,17 @@ public class TelaJogo extends JPanel {
     }
 
     private void desenharMenu(Graphics2D g, Partida partida) {
-        int largura = 96;
+        int largura = 128;
         int x = (LARGURA - largura) / 2;
-        int y = 116;
-        caixaEscura.desenhar(g, x, y, largura, 52);
+        int y = 112;
+        caixaEscura.desenhar(g, x, y, largura, 70);
 
         g.setFont(Texto.MEDIA);
-        String[] opcoes = { "Jogar", "Sair" };
+        String volume = mundo.getConfiguracao().getVolumeDaMusica() + "%";
+        if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
+            volume = "< " + volume + " >";
+        }
+        String[] opcoes = { "Jogar", "Música: " + volume, "Sair" };
         for (int i = 0; i < opcoes.length; i++) {
             int linhaY = y + 21 + i * 18;
             Color cor = new Color(220, 200, 180);

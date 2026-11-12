@@ -7,7 +7,7 @@ import java.awt.event.KeyListener;
  * Guarda o estado das teclas.
  * Setas: "segurando" (vale enquanto a tecla estiver apertada).
  * Enter, Espaço, Esc e as setas no menu: "apertou" (vale uma vez por toque e é consumido).
- * F11 ou Alt+Enter: liga e desliga a tela cheia.
+ * F11 ou Alt+Enter: liga e desliga a tela cheia. - e +: volume da música.
  */
 public class Teclado implements KeyListener {
     private boolean cima;
@@ -20,10 +20,14 @@ public class Teclado implements KeyListener {
 
     private boolean apertouCima;
     private boolean apertouBaixo;
+    private boolean apertouEsquerda;
+    private boolean apertouDireita;
     private boolean apertouConfirmar;
     private boolean apertouAcao;
     private boolean apertouVoltar;
     private boolean apertouTelaCheia;
+    private boolean apertouMais;
+    private boolean apertouMenos;
 
     @Override
     public void keyPressed(KeyEvent evento) {
@@ -44,11 +48,26 @@ public class Teclado implements KeyListener {
                 break;
             case KeyEvent.VK_LEFT:
             case KeyEvent.VK_A:
+                if (!esquerda) {
+                    apertouEsquerda = true;
+                }
                 esquerda = true;
                 break;
             case KeyEvent.VK_RIGHT:
             case KeyEvent.VK_D:
+                if (!direita) {
+                    apertouDireita = true;
+                }
                 direita = true;
+                break;
+            case KeyEvent.VK_MINUS:
+            case KeyEvent.VK_SUBTRACT:
+                apertouMenos = true;
+                break;
+            case KeyEvent.VK_EQUALS:
+            case KeyEvent.VK_PLUS:
+            case KeyEvent.VK_ADD:
+                apertouMais = true;
                 break;
             case KeyEvent.VK_F11:
                 apertouTelaCheia = true;
@@ -121,6 +140,8 @@ public class Teclado implements KeyListener {
     public void limparToques() {
         apertouCima = false;
         apertouBaixo = false;
+        apertouEsquerda = false;
+        apertouDireita = false;
         apertouConfirmar = false;
         apertouAcao = false;
         apertouVoltar = false;
@@ -135,6 +156,33 @@ public class Teclado implements KeyListener {
     public boolean consumirBaixo() {
         boolean apertou = apertouBaixo;
         apertouBaixo = false;
+        return apertou;
+    }
+
+    public boolean consumirEsquerda() {
+        boolean apertou = apertouEsquerda;
+        apertouEsquerda = false;
+        return apertou;
+    }
+
+    public boolean consumirDireita() {
+        boolean apertou = apertouDireita;
+        apertouDireita = false;
+        return apertou;
+    }
+
+    /**
+     * Teclas - e + mudam o volume da música em qualquer cena.
+     */
+    public boolean consumirMais() {
+        boolean apertou = apertouMais;
+        apertouMais = false;
+        return apertou;
+    }
+
+    public boolean consumirMenos() {
+        boolean apertou = apertouMenos;
+        apertouMenos = false;
         return apertou;
     }
 

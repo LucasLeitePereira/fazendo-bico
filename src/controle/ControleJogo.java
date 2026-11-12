@@ -8,6 +8,7 @@ import dao.DaoMapa;
 import dao.DaoRecorde;
 import modelo.Animal;
 import modelo.Cena;
+import modelo.Configuracao;
 import modelo.Decoracao;
 import modelo.Dialogo;
 import modelo.Direcao;
@@ -27,8 +28,7 @@ import view.Som;
  */
 public class ControleJogo {
     private static final int MILISSEGUNDOS_POR_QUADRO = 1000 / 60;
-    private static final int OPCAO_JOGAR = 0;
-    private static final int OPCAO_SAIR = 1;
+    private static final String SOM_DOS_PASSOS = "passos";
     private static final int QUADROS_DE_TREMOR_DA_RAIDE = 90;
     private static final int QUADROS_DE_TREMOR_DO_DANO = 8;
     private static final float RECUO_NA_SAIDA_FECHADA = 6;
@@ -67,11 +67,15 @@ public class ControleJogo {
     private boolean jogando = true;
     private boolean missaoSendoOferecida = false;
     private float destinoDaEntradaX;
+    // Posição do herói no quadro anterior: os passos só soam se ele saiu do lugar.
+    private float ultimaPosicaoX;
+    private float ultimaPosicaoY;
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
         mundo.setMapaDoFundo(daoMapa.carregar(MAPA_DA_VILA));
         janela = new Janela(mundo, teclado);
+        som.definirVolumeDaMusica(mundo.getConfiguracao().getVolumeDaMusica());
         som.tocarMusica("inicial");
     }
 
@@ -96,6 +100,14 @@ public class ControleJogo {
             janela.alternarTelaCheia();
             teclado.limparToques();
         }
+        if (teclado.consumirMais()) {
+            mudarVolumeDaMusica(Configuracao.PASSO_DO_VOLUME);
+        }
+        if (teclado.consumirMenos()) {
+            mudarVolumeDaMusica(-Configuracao.PASSO_DO_VOLUME);
+        }
+        mundo.getConfiguracao().contarQuadroDoAviso();
+
         switch (mundo.getPartida().getCena()) {
             case INICIAL:
                 atualizarTelaInicial();
@@ -110,6 +122,34 @@ public class ControleJogo {
                 atualizarTelaFinal();
                 break;
         }
+        atualizarSomDosPassos();
+    }
+
+    private void mudarVolumeDaMusica(int diferenca) {
+        Configuracao configuracao = mundo.getConfiguracao();
+        configuracao.mudarVolumeDaMusica(diferenca);
+        som.definirVolumeDaMusica(configuracao.getVolumeDaMusica());
+        som.tocarEfeito("menu");
+    }
+
+    /**
+     * Passos na grama em loop enquanto o herói anda de verdade (empurrar a parede não conta).
+     */
+    private void atualizarSomDosPassos() {
+        Heroi heroi = mundo.getHeroi();
+        Cena cena = mundo.getPartida().getCena();
+        boolean andando = false;
+        if (heroi != null && (cena == Cena.VILA || cena == Cena.CAMPO)) {
+            boolean saiuDoLugar = heroi.getX() != ultimaPosicaoX || heroi.getY() != ultimaPosicaoY;
+            andando = heroi.isAndando() && saiuDoLugar;
+            ultimaPosicaoX = heroi.getX();
+            ultimaPosicaoY = heroi.getY();
+        }
+        if (andando) {
+            som.tocarEfeitoEmLoop(SOM_DOS_PASSOS);
+        } else {
+            som.pararEfeito(SOM_DOS_PASSOS);
+        }
     }
 
     private void mudarCena(Cena cena) {
@@ -122,21 +162,31 @@ public class ControleJogo {
     private void atualizarTelaInicial() {
         Partida partida = mundo.getPartida();
 
-        boolean apertouCima = teclado.consumirCima();
-        boolean apertouBaixo = teclado.consumirBaixo();
-        if (apertouCima || apertouBaixo) {
-            if (partida.getOpcaoDoMenu() == OPCAO_JOGAR) {
-                partida.setOpcaoDoMenu(OPCAO_SAIR);
-            } else {
-                partida.setOpcaoDoMenu(OPCAO_JOGAR);
-            }
+        if (teclado.consumirCima()) {
+            partida.setOpcaoDoMenu((partida.getOpcaoDoMenu() + Partida.QUANTIDADE_DE_OPCOES - 1) % Partida.QUANTIDADE_DE_OPCOES);
+            som.tocarEfeito("menu");
+        }
+        if (teclado.consumirBaixo()) {
+            partida.setOpcaoDoMenu((partida.getOpcaoDoMenu() + 1) % Partida.QUANTIDADE_DE_OPCOES);
             som.tocarEfeito("menu");
         }
 
+        // Na linha "Música", esquerda e direita mudam o volume.
+        boolean apertouEsquerda = teclado.consumirEsquerda();
+        boolean apertouDireita = teclado.consumirDireita();
+        if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
+            if (apertouEsquerda) {
+                mudarVolumeDaMusica(-Configuracao.PASSO_DO_VOLUME);
+            }
+            if (apertouDireita) {
+                mudarVolumeDaMusica(Configuracao.PASSO_DO_VOLUME);
+            }
+        }
+
         if (teclado.consumirConfirmar()) {
-            if (partida.getOpcaoDoMenu() == OPCAO_JOGAR) {
+            if (partida.getOpcaoDoMenu() == Partida.OPCAO_JOGAR) {
                 comecarPartida();
-            } else {
+            } else if (partida.getOpcaoDoMenu() == Partida.OPCAO_SAIR) {
                 jogando = false;
             }
         }

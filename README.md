@@ -28,6 +28,7 @@ Em uma IDE (Eclipse, IntelliJ, NetBeans), marque `src` **e** `recursos` como pas
 | Enter | Confirmar |
 | Esc | Voltar à tela inicial / sair |
 | F11 ou Alt+Enter | Liga e desliga a tela cheia |
+| - e + | Volume da música, em qualquer tela (também no menu inicial, na opção "Música", com esquerda/direita). Começa em 50% |
 
 A janela também pode ser esticada ou maximizada. A arte é desenhada em 320×240 e ampliada para caber na tela, com faixas pretas nas sobras. Para não pesar, a cena é montada numa escala inteira de até 3× e depois esticada. Se o PC estiver lento, essa escala cai sozinha.
 
@@ -158,7 +159,7 @@ Todos os arquivos são opcionais, menos os mapas. Sem uma imagem, o jogo desenha
 
 **Sons (WAV PCM de 16 bits; MP3 e OGG não funcionam)**
 
-Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar > Exportar como WAV" (PCM de 16 bits). Hoje só existe `vila.wav`; os outros nomes ficam em silêncio até alguém colocar o arquivo. A música de luta entra como `raide.wav`.
+Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar > Exportar como WAV" (PCM de 16 bits). Hoje só existem `vila.wav` e `passos.wav`; os outros nomes ficam em silêncio até alguém colocar o arquivo. A música de luta entra como `raide.wav`.
 
 | Arquivo | Quando toca |
 |---|---|
@@ -175,6 +176,7 @@ Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar >
 | `recursos/sons/galinha.wav` | Galinha derrotada |
 | `recursos/sons/raide.wav` | Começo da raide |
 | `recursos/sons/dano.wav` | Herói leva dano |
+| `recursos/sons/passos.wav` | Passos na grama, em loop enquanto o herói anda (tem: `entrada/soundtrack/caminhando_grama.wav`) |
 
 As músicas ficam inteiras na memória: prefira 22 kHz ou 44 kHz e alguns minutos no máximo.
 

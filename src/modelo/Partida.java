@@ -2,6 +2,11 @@ package modelo;
 
 public class Partida {
     public static final int PONTOS_POR_GALINHA = 10;
+    // Opções do menu inicial, de cima para baixo.
+    public static final int OPCAO_JOGAR = 0;
+    public static final int OPCAO_MUSICA = 1;
+    public static final int OPCAO_SAIR = 2;
+    public static final int QUANTIDADE_DE_OPCOES = 3;
 
     private Cena cena = Cena.INICIAL;
     private int opcaoDoMenu;

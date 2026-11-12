@@ -14,9 +14,8 @@ import javax.sound.sampled.FloatControl;
  * Se um arquivo não existir, o jogo continua em silêncio.
  */
 public class Som {
-    private static final float VOLUME_DA_MUSICA = -6.0f;
-
     private Clip musicaAtual;
+    private int volumeDaMusica = 100;
     private String nomeDaMusicaAtual = "";
     private Map<String, Clip> efeitos = new HashMap<String, Clip>();
 
@@ -31,22 +30,35 @@ public class Som {
         nomeDaMusicaAtual = nome;
         musicaAtual = carregar("/musicas/" + nome + ".wav");
         if (musicaAtual != null) {
-            baixarVolume(musicaAtual, VOLUME_DA_MUSICA);
+            aplicarVolume(musicaAtual, volumeDaMusica);
             musicaAtual.loop(Clip.LOOP_CONTINUOUSLY);
         }
     }
 
     /**
-     * Deixa a música um pouco mais baixa, para não abafar os efeitos.
+     * Volume da música de 0 a 100 (%). Vale para a música que está tocando e para as próximas.
+     */
+    public void definirVolumeDaMusica(int porcento) {
+        volumeDaMusica = porcento;
+        if (musicaAtual != null) {
+            aplicarVolume(musicaAtual, porcento);
+        }
+    }
+
+    /**
+     * O Java mede o volume em decibéis: 50% da força do som é cerca de -6 dB, e 0% é o mínimo.
      * Alguns computadores não têm esse controle; aí o volume fica como está.
      */
-    private void baixarVolume(Clip clip, float decibeis) {
+    private void aplicarVolume(Clip clip, int porcento) {
         if (!clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
             return;
         }
         FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-        float valor = Math.max(volume.getMinimum(), Math.min(volume.getMaximum(), decibeis));
-        volume.setValue(valor);
+        float decibeis = volume.getMinimum();
+        if (porcento > 0) {
+            decibeis = (float) (20 * Math.log10(porcento / 100.0));
+        }
+        volume.setValue(Math.max(volume.getMinimum(), Math.min(volume.getMaximum(), decibeis)));
     }
 
     public void pararMusica() {
@@ -62,16 +74,39 @@ public class Som {
      * Exemplo: tocarEfeito("golpe") toca recursos/sons/golpe.wav.
      */
     public void tocarEfeito(String nome) {
-        if (!efeitos.containsKey(nome)) {
-            efeitos.put(nome, carregar("/sons/" + nome + ".wav"));
-        }
-        Clip efeito = efeitos.get(nome);
+        Clip efeito = buscarEfeito(nome);
         if (efeito == null) {
             return;
         }
         efeito.stop();
         efeito.setFramePosition(0);
         efeito.start();
+    }
+
+    /**
+     * Toca um efeito repetindo sem parar (os passos do herói). Se já estiver tocando, continua.
+     */
+    public void tocarEfeitoEmLoop(String nome) {
+        Clip efeito = buscarEfeito(nome);
+        if (efeito == null || efeito.isRunning()) {
+            return;
+        }
+        efeito.setFramePosition(0);
+        efeito.loop(Clip.LOOP_CONTINUOUSLY);
+    }
+
+    public void pararEfeito(String nome) {
+        Clip efeito = buscarEfeito(nome);
+        if (efeito != null && efeito.isRunning()) {
+            efeito.stop();
+        }
+    }
+
+    private Clip buscarEfeito(String nome) {
+        if (!efeitos.containsKey(nome)) {
+            efeitos.put(nome, carregar("/sons/" + nome + ".wav"));
+        }
+        return efeitos.get(nome);
     }
 
     private Clip carregar(String caminho) {
