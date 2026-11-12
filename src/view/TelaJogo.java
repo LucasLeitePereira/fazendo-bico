@@ -37,6 +37,7 @@ public class TelaJogo extends JPanel {
     public static final int ALTURA = 240;
     public static final int ESCALA = 2;
 
+    private static final int QUADROS_CLAREANDO_NA_ENTRADA = 50;
     private static final Color COR_DO_FUNDO = new Color(30, 30, 50);
     private static final Color COR_DO_TEXTO_ESCURO = new Color(70, 42, 25);
     private static final Color COR_DO_TITULO = new Color(255, 214, 90);
@@ -67,6 +68,7 @@ public class TelaJogo extends JPanel {
 
     private Animacao animacaoHeroiParado;
     private Animacao animacaoHeroiCorrendo;
+    private Animacao animacaoHeroiCaminhando;
     private Animacao animacaoHeroiAtacando;
     private Animacao animacaoHeroiComDano;
     private Animacao animacaoHeroiMorrendo;
@@ -105,6 +107,7 @@ public class TelaJogo extends JPanel {
         Color verde = new Color(60, 170, 80);
         animacaoHeroiParado = criarAnimacaoDePessoa(imagens, "heroi_parado", verde, 8);
         animacaoHeroiCorrendo = criarAnimacaoDePessoa(imagens, "heroi_correndo", verde, 5);
+        animacaoHeroiCaminhando = criarAnimacaoDePessoa(imagens, "heroi_andando", verde, 5);
         animacaoHeroiAtacando = criarAnimacaoDePessoa(imagens, "heroi_ataque", verde, 2);
         animacaoHeroiComDano = criarAnimacaoDePessoa(imagens, "heroi_dano", verde, 2);
         animacaoHeroiMorrendo = criarAnimacaoDePessoa(imagens, "heroi_morte", verde, 6);
@@ -208,6 +211,12 @@ public class TelaJogo extends JPanel {
         desenharCena(g, mapa, cameraX, cameraY, true);
         if (!noCampo && partida.isMissaoAceita() && !mundo.getDialogo().isAtivo()) {
             desenharSetaDaSaida(g, mapa.getSaida(), cameraX, cameraY);
+        }
+        if (noCampo && partida.getQuadrosDaEntrada() < QUADROS_CLAREANDO_NA_ENTRADA) {
+            // Chegada ao campo: a tela começa preta e clareia aos poucos.
+            int opacidade = 255 - partida.getQuadrosDaEntrada() * 255 / QUADROS_CLAREANDO_NA_ENTRADA;
+            g.setColor(new Color(0, 0, 0, opacidade));
+            g.fillRect(0, 0, LARGURA, ALTURA);
         }
 
         hud.desenhar(g, heroi, partida, noCampo);
@@ -420,7 +429,9 @@ public class TelaJogo extends JPanel {
         } else {
             boolean invisivelNestePiscar = heroi.estaInvencivel() && heroi.getQuadrosInvencivel() % 8 < 4;
             if (!invisivelNestePiscar) {
-                if (heroi.isAndando()) {
+                if (heroi.isCaminhando() && animacaoHeroiCaminhando.temImagem()) {
+                    animacaoHeroiCaminhando.desenhar(g, heroi, heroi.getContadorPassos(), cameraX, cameraY, 0);
+                } else if (heroi.isAndando()) {
                     animacaoHeroiCorrendo.desenhar(g, heroi, heroi.getContadorPassos(), cameraX, cameraY, 0);
                 } else {
                     animacaoHeroiParado.desenhar(g, heroi, relogio, cameraX, cameraY, 0);

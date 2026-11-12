@@ -33,6 +33,9 @@ public class ControleJogo {
     private static final int QUADROS_DE_TREMOR_DO_DANO = 8;
     private static final float RECUO_NA_SAIDA_FECHADA = 6;
     private static final int PASSOS_ENTRE_POEIRAS = 14;
+    // Chegada ao campo: o herói começa fora do mapa e anda devagar até o ponto marcado.
+    private static final float INICIO_DA_ENTRADA_X = -14;
+    private static final float VELOCIDADE_DA_ENTRADA = 0.6f;
     // Tempo da animação de morte (13 quadros) mais uma pausa antes da tela final.
     private static final int QUADROS_DA_MORTE = 13 * 6 + 60;
     private static final String MAPA_DA_VILA = "/mapas/vila.tmx";
@@ -51,7 +54,7 @@ public class ControleJogo {
     };
     private static final String[] FALAS_AO_CHEGAR_NO_CAMPO = {
         "O campo. Só uma galinha, ciscando sozinha no meio do mato.",
-        "Parece fácil. (Espaço para atacar. Para fugir, volte pela trilha ao norte)"
+        "Parece fácil. (Espaço para atacar. Para fugir, volte pela estrada a oeste)"
     };
 
     private Mundo mundo = new Mundo();
@@ -63,6 +66,7 @@ public class ControleJogo {
     private Janela janela;
     private boolean jogando = true;
     private boolean missaoSendoOferecida = false;
+    private float destinoDaEntradaX;
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
@@ -349,14 +353,51 @@ public class ControleJogo {
             galinha.soltarNoChao(posicao.x - 6, posicao.y - 6);
         }
 
+        // O herói chega andando devagar, vindo de fora do mapa pela esquerda,
+        // até o ponto marcado no mapa. Só então aparece a fala da chegada.
+        Heroi heroi = mundo.getHeroi();
+        destinoDaEntradaX = heroi.getX();
+        heroi.setPosicao(INICIO_DA_ENTRADA_X, heroi.getY());
+        heroi.setDirecao(Direcao.DIREITA);
+        heroi.setCaminhando(true);
+        heroi.setAndando(true);
+        mundo.getPartida().comecarEntrada();
+
         mudarCena(Cena.CAMPO);
         som.tocarMusica("campo");
+    }
+
+    private void atualizarEntradaNoCampo() {
+        Heroi heroi = mundo.getHeroi();
+        atualizarAnimais();
+        atualizarGalinhas();
+        mundo.atualizarEfeitos();
+
+        // Os passos andam na metade do ritmo normal, para combinar com o andar lento.
+        if (mundo.getPartida().getQuadrosDaEntrada() % 2 == 0) {
+            heroi.atualizar(mundo.getMapa());
+        }
+
+        float novoX = heroi.getX() + VELOCIDADE_DA_ENTRADA;
+        if (novoX < destinoDaEntradaX) {
+            heroi.setPosicao(novoX, heroi.getY());
+            return;
+        }
+        heroi.setPosicao(destinoDaEntradaX, heroi.getY());
+        heroi.setCaminhando(false);
+        heroi.setAndando(false);
+        teclado.limparToques();
         mundo.getDialogo().abrir("", FALAS_AO_CHEGAR_NO_CAMPO);
     }
 
     private void atualizarCampo() {
         if (teclado.consumirVoltar()) {
             voltarParaTelaInicial();
+            return;
+        }
+        mundo.getPartida().contarQuadroDaEntrada();
+        if (mundo.getHeroi().isCaminhando()) {
+            atualizarEntradaNoCampo();
             return;
         }
         if (mundo.getDialogo().isAtivo()) {

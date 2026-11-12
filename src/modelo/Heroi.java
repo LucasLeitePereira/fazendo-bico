@@ -13,6 +13,7 @@ public class Heroi extends Entidade {
     private int vida = VIDA_MAXIMA;
     private Arma arma;
     private boolean andando;
+    private boolean caminhando;
     private int quadrosInvencivel;
     private int quadrosDoGolpe;
     private int quadrosDeRecarga;
@@ -139,6 +140,17 @@ public class Heroi extends Entidade {
 
     public boolean isAndando() {
         return andando;
+    }
+
+    /**
+     * Caminhando é o andar lento e automático da chegada ao campo (sem correr).
+     */
+    public void setCaminhando(boolean caminhando) {
+        this.caminhando = caminhando;
+    }
+
+    public boolean isCaminhando() {
+        return caminhando;
     }
 
     public int getVida() {

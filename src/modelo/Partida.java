@@ -14,6 +14,7 @@ public class Partida {
     private int onda;
     private int quadrosTremendo;
     private boolean fugiu;
+    private int quadrosDaEntrada;
 
     /**
      * Zera tudo para uma nova partida, menos o recorde.
@@ -121,6 +122,21 @@ public class Partida {
 
     public int getQuadrosTremendo() {
         return quadrosTremendo;
+    }
+
+    /**
+     * Quadros desde que o herói chegou ao campo. A tela usa para clarear aos poucos.
+     */
+    public int getQuadrosDaEntrada() {
+        return quadrosDaEntrada;
+    }
+
+    public void comecarEntrada() {
+        quadrosDaEntrada = 0;
+    }
+
+    public void contarQuadroDaEntrada() {
+        quadrosDaEntrada++;
     }
 
     public boolean isFugiu() {

@@ -4,7 +4,7 @@
 
 Jogo 2D com visão de cima feito em Java Swing para o trabalho G2 de Programação Orientada a Objetos.
 
-O herói acorda numa vila onde todo mundo odeia galinhas. O prefeito oferece um serviço muito bem pago: derrotar as galinhas do campo. Lá só há uma galinha, ciscando sozinha. Ao derrotá-la, começa a **raide**: ondas cada vez maiores de galinhas furiosas voam contra o herói. Cada galinha derrotada vale pontos. A partida termina quando o herói **foge** (volta pela trilha ao norte do campo) ou é **derrotado** (perde todos os corações).
+O herói acorda numa vila onde todo mundo odeia galinhas. O prefeito oferece um serviço muito bem pago: derrotar as galinhas do campo. Lá só há uma galinha, ciscando sozinha. Ao derrotá-la, começa a **raide**: ondas cada vez maiores de galinhas furiosas voam contra o herói. Cada galinha derrotada vale pontos. A partida termina quando o herói **foge** (volta pela estrada a oeste do campo, por onde chegou) ou é **derrotado** (perde todos os corações).
 
 ## Como rodar
 
@@ -130,12 +130,14 @@ Todos os arquivos são opcionais, menos os mapas. Sem uma imagem, o jogo desenha
 
 **Sons (WAV PCM de 16 bits; MP3 e OGG não funcionam)**
 
+Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar > Exportar como WAV" (PCM de 16 bits). Hoje só existe `vila.wav`; os outros nomes ficam em silêncio até alguém colocar o arquivo. A música de luta entra como `raide.wav`.
+
 | Arquivo | Quando toca |
 |---|---|
-| `recursos/musicas/inicial.wav` | Tela inicial |
-| `recursos/musicas/vila.wav` | Vila |
-| `recursos/musicas/campo.wav` | Campo, antes da raide |
-| `recursos/musicas/raide.wav` | Durante a raide |
+| `recursos/musicas/inicial.wav` | Tela inicial (hoje em silêncio) |
+| `recursos/musicas/vila.wav` | Vila (tem: convertida de `entrada/soundtrack/musica_vila.mp3`) |
+| `recursos/musicas/campo.wav` | Campo, antes da raide (hoje em silêncio, de propósito) |
+| `recursos/musicas/raide.wav` | Durante a raide (música de luta, a definir) |
 | `recursos/musicas/fuga.wav`, `derrota.wav` | Tela final |
 | `recursos/sons/menu.wav` | Mudar de opção no menu |
 | `recursos/sons/dialogo.wav` | Abrir ou avançar uma conversa |

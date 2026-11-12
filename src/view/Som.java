@@ -7,12 +7,15 @@ import java.util.Map;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 
 /**
  * Toca músicas (em loop) e efeitos sonoros. Só aceita arquivos WAV.
  * Se um arquivo não existir, o jogo continua em silêncio.
  */
 public class Som {
+    private static final float VOLUME_DA_MUSICA = -6.0f;
+
     private Clip musicaAtual;
     private String nomeDaMusicaAtual = "";
     private Map<String, Clip> efeitos = new HashMap<String, Clip>();
@@ -28,8 +31,22 @@ public class Som {
         nomeDaMusicaAtual = nome;
         musicaAtual = carregar("/musicas/" + nome + ".wav");
         if (musicaAtual != null) {
+            baixarVolume(musicaAtual, VOLUME_DA_MUSICA);
             musicaAtual.loop(Clip.LOOP_CONTINUOUSLY);
         }
+    }
+
+    /**
+     * Deixa a música um pouco mais baixa, para não abafar os efeitos.
+     * Alguns computadores não têm esse controle; aí o volume fica como está.
+     */
+    private void baixarVolume(Clip clip, float decibeis) {
+        if (!clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+            return;
+        }
+        FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+        float valor = Math.max(volume.getMinimum(), Math.min(volume.getMaximum(), decibeis));
+        volume.setValue(valor);
     }
 
     public void pararMusica() {
