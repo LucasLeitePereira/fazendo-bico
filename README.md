@@ -101,7 +101,7 @@ Arquivos:
 | Objeto de imagem do `objetos.tsx` (ferramenta "Inserir tile") | Decoração. O nome do arquivo diz o tipo: `arvore1`, `poco`, `barril`... Pode ser espelhada na horizontal |
 | `vaca`, `porco`, `ovelha`, `pato` | Viram animais vivos que passeiam pelo mapa |
 | Ponto chamado `heroi` | Onde o herói começa |
-| Pontos `morador1` a `morador4` | Onde ficam o prefeito, Dona Cida, Seu Juca e Tico (só na vila) |
+| Pontos `morador1` a `morador4` | Onde ficam os NPCs 1 a 4 do `falas.txt` (só na vila). O NPC1 é o prefeito, que dá a missão |
 | Ponto(s) `galinha` | Galinhas no chão ao entrar no campo. O mapa padrão tem uma só: as outras vêm com a raide |
 | Retângulo chamado `saida` | Na vila, leva ao campo (depois da missão); no campo, é a fuga |
 
@@ -135,6 +135,21 @@ Para ver os colisores das decorações no mapa, ligue **Exibir → Mostrar Forma
 **Animações:** se existir `recursos/objetos/animados/<nome>.png`, o jogo usa essa tira (quadros lado a lado, cada um do tamanho da imagem parada) no lugar da imagem parada. É assim que as árvores balançam, o moinho gira e as chaminés soltam fumaça.
 
 **Nova decoração:** coloque o PNG em `recursos/objetos/` e, no Tiled, adicione a imagem ao tileset `objetos` (botão "Adicionar tiles").
+
+## Falas e nomes dos personagens
+
+Todos os textos das conversas e os nomes dos NPCs ficam em **`recursos/falas.txt`**, no estilo de um arquivo `.env`:
+
+```
+NPC2_NOME=Dona Cida
+NPC2_FALA_1=Galinhas? Nem me fale em galinhas.
+NPC2_FALA_2=Uma delas ficou me encarando por três horas semana passada.
+```
+
+- `NPCn_NOME` é o nome que aparece na caixa de conversa. `NPCn_FALA_1`, `_2`, `_3`... são os balões, em ordem. Para acrescentar um balão, use o próximo número.
+- `NPC1_DEPOIS_DA_MISSAO_n`: o que o prefeito diz depois de dar a missão. `ACORDAR_n`, `SAIDA_FECHADA_n` e `CHEGADA_NO_CAMPO_n`: a narração.
+- Linhas com `#` são comentários. Aspas, acentos e `=` dentro do texto funcionam sem barra. Salve em UTF-8, que é o padrão do Bloco de Notas e do VS Code.
+- Não precisa compilar: o arquivo é lido de novo a cada partida. Se faltar uma chave, o jogo mostra o nome dela entre colchetes, por exemplo `[NPC2_FALA_1]`.
 
 ## Arte e som
 

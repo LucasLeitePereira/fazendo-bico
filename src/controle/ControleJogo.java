@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
 
+import dao.DaoFalas;
 import dao.DaoMapa;
 import dao.DaoRecorde;
 import modelo.Animal;
@@ -14,6 +15,7 @@ import modelo.Dialogo;
 import modelo.Direcao;
 import modelo.Efeito;
 import modelo.Entidade;
+import modelo.Falas;
 import modelo.Galinha;
 import modelo.Heroi;
 import modelo.Mapa;
@@ -41,27 +43,19 @@ public class ControleJogo {
     private static final String MAPA_DA_VILA = "/mapas/vila.tmx";
     private static final String MAPA_DO_CAMPO = "/mapas/campo.tmx";
 
-    private static final String[] FALAS_AO_ACORDAR = {
-        "Você acorda. Lá fora, alguém grita: \"GALINHA NÃO!\"",
-        "Melhor ver o que está acontecendo na vila. (Setas para andar, Espaço para falar)"
-    };
-    private static final String[] FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO = {
-        "O campo fica a leste. Siga a estrada da vila até o fim, lá na praia.",
-        "Boa sorte. Você vai precisar."
-    };
-    private static final String[] FALAS_DA_SAIDA_FECHADA = {
-        "Melhor falar com o prefeito antes de sair da vila."
-    };
-    private static final String[] FALAS_AO_CHEGAR_NO_CAMPO = {
-        "O campo. Só uma galinha, ciscando sozinha no meio do mato.",
-        "Parece fácil. (Espaço para atacar. Para fugir, volte pela estrada a oeste)"
-    };
+    // Todas as falas ficam em recursos/falas.txt (CHAVE=texto).
+    private static final String ARQUIVO_DE_FALAS = "/falas.txt";
+    private static final int QUANTIDADE_DE_MORADORES = 4;
+    // O morador que oferece a missão (NPC1 no falas.txt, ponto morador1 no mapa).
+    private static final int NUMERO_DO_PREFEITO = 1;
 
     private Mundo mundo = new Mundo();
     private Teclado teclado = new Teclado();
     private ControleRaide controleRaide = new ControleRaide();
     private DaoMapa daoMapa = new DaoMapa();
     private DaoRecorde daoRecorde = new DaoRecorde();
+    private DaoFalas daoFalas = new DaoFalas();
+    private Falas falas;
     private Som som = new Som();
     private Janela janela;
     private boolean jogando = true;
@@ -73,6 +67,7 @@ public class ControleJogo {
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
+        falas = daoFalas.carregar(ARQUIVO_DE_FALAS);
         mundo.setMapaDoFundo(daoMapa.carregar(MAPA_DA_VILA));
         janela = new Janela(mundo, teclado);
         som.definirVolumeDaMusica(mundo.getConfiguracao().getVolumeDaMusica());
@@ -201,8 +196,10 @@ public class ControleJogo {
         mundo.recolherTodasAsGalinhas();
         mundo.apagarEfeitos();
         missaoSendoOferecida = false;
+        // Lido de novo a cada partida: dá para mudar uma fala sem fechar o jogo.
+        falas = daoFalas.carregar(ARQUIVO_DE_FALAS);
         carregarVila();
-        mundo.getDialogo().abrir("", FALAS_AO_ACORDAR);
+        mundo.getDialogo().abrir("", falas.getLista("ACORDAR"));
     }
 
     private void voltarParaTelaInicial() {
@@ -266,30 +263,14 @@ public class ControleJogo {
      * Cada morador fica no ponto "morador1" a "morador4" do mapa.
      */
     private Morador[] criarMoradores(Mapa mapa) {
-        Morador[] moradores = new Morador[4];
-
-        moradores[0] = criarMorador(mapa, 1, "Prefeito Bento", new String[] {
-            "Ah, finalmente acordou! Tenho um serviço pra você.",
-            "Tem galinhas no campo, no fim da estrada, a leste. Derrote quantas puder.",
-            "Pago 10 moedas por galinha!",
-            "...Por que tanto? Ah, você vai descobrir. Digo, não é nada!"
-        }, true);
-
-        moradores[1] = criarMorador(mapa, 2, "Dona Cida", new String[] {
-            "Galinhas? Nem me fale em galinhas.",
-            "Uma delas ficou me encarando por três horas semana passada."
-        }, false);
-
-        moradores[2] = criarMorador(mapa, 3, "Seu Juca", new String[] {
-            "Já reparou que ninguém nesta vila come ovo?",
-            "Pois é. Melhor não perguntar."
-        }, false);
-
-        moradores[3] = criarMorador(mapa, 4, "Tico", new String[] {
-            "Esse galinheiro aqui tá vazio desde o Incidente.",
-            "Meu pai diz que galinha não anda em bando. Anda em EXÉRCITO."
-        }, false);
-
+        Morador[] moradores = new Morador[QUANTIDADE_DE_MORADORES];
+        for (int i = 0; i < moradores.length; i++) {
+            int numero = i + 1;
+            String nome = falas.getTexto("NPC" + numero + "_NOME");
+            String[] falasDoMorador = falas.getLista("NPC" + numero + "_FALA");
+            boolean daMissao = numero == NUMERO_DO_PREFEITO;
+            moradores[i] = criarMorador(mapa, numero, nome, falasDoMorador, daMissao);
+        }
         return moradores;
     }
 
@@ -323,7 +304,7 @@ public class ControleJogo {
                 carregarCampo();
             } else {
                 recuarHeroi();
-                mundo.getDialogo().abrir("", FALAS_DA_SAIDA_FECHADA);
+                mundo.getDialogo().abrir("", falas.getLista("SAIDA_FECHADA"));
             }
         }
     }
@@ -347,7 +328,8 @@ public class ControleJogo {
     private void abrirConversa(Morador morador) {
         Dialogo dialogo = mundo.getDialogo();
         if (morador.isDaMissao() && mundo.getPartida().isMissaoAceita()) {
-            dialogo.abrir(morador.getNome(), FALAS_DO_PREFEITO_DEPOIS_DA_MISSAO, morador.getNumero());
+            dialogo.abrir(morador.getNome(), falas.getLista("NPC" + morador.getNumero() + "_DEPOIS_DA_MISSAO"),
+                    morador.getNumero());
         } else {
             dialogo.abrir(morador.getNome(), morador.getFalas(), morador.getNumero());
             if (morador.isDaMissao()) {
@@ -441,7 +423,7 @@ public class ControleJogo {
         heroi.setCaminhando(false);
         heroi.setAndando(false);
         teclado.limparToques();
-        mundo.getDialogo().abrir("", FALAS_AO_CHEGAR_NO_CAMPO);
+        mundo.getDialogo().abrir("", falas.getLista("CHEGADA_NO_CAMPO"));
     }
 
     private void atualizarCampo() {
