@@ -21,7 +21,7 @@ public class Decoracao {
     private int altura;
     private boolean espelhada;
     private int camada;
-    private Rectangle base;
+    private Rectangle[] colisores = new Rectangle[0];
 
     public Decoracao(String tipo, int x, int y, int largura, int altura, boolean espelhada, int camada) {
         this.tipo = tipo;
@@ -34,16 +34,34 @@ public class Decoracao {
     }
 
     /**
-     * Torna sólida uma faixa no pé da decoração (o tronco da árvore, a base do barril).
+     * Partes sólidas da decoração (o tronco da árvore, a base do barril), desenhadas no
+     * Editor de Colisão do Tiled. Os retângulos vêm medidos na imagem original
+     * (larguraDaImagem x alturaDaImagem) e são levados para a posição no mapa,
+     * acompanhando o espelhamento e o tamanho que o objeto tiver no mapa.
      */
-    public void definirBaseSolida(int larguraDaBase, int alturaDaBase) {
-        int baseX = x + (largura - larguraDaBase) / 2;
-        int baseY = y + altura - alturaDaBase;
-        base = new Rectangle(baseX, baseY, larguraDaBase, alturaDaBase);
+    public void definirColisores(Rectangle[] naImagem, int larguraDaImagem, int alturaDaImagem) {
+        colisores = new Rectangle[naImagem.length];
+        for (int i = 0; i < naImagem.length; i++) {
+            Rectangle original = naImagem[i];
+            int esquerda = original.x;
+            if (espelhada) {
+                esquerda = larguraDaImagem - original.x - original.width;
+            }
+            int colisorX = x + esquerda * largura / larguraDaImagem;
+            int colisorY = y + original.y * altura / alturaDaImagem;
+            int colisorLargura = original.width * largura / larguraDaImagem;
+            int colisorAltura = original.height * altura / alturaDaImagem;
+            colisores[i] = new Rectangle(colisorX, colisorY, colisorLargura, colisorAltura);
+        }
     }
 
     public boolean bloqueia(Rectangle area) {
-        return base != null && base.intersects(area);
+        for (int i = 0; i < colisores.length; i++) {
+            if (colisores[i].intersects(area)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public String getTipo() {
@@ -81,7 +99,7 @@ public class Decoracao {
         return camada;
     }
 
-    public Rectangle getBase() {
-        return base;
+    public Rectangle[] getColisores() {
+        return colisores;
     }
 }

@@ -54,7 +54,7 @@ recursos/    mapas, imagens, sons e músicas
 | `modelo.Heroi`, `Galinha`, `Morador`, `Animal` | Herdam de `Entidade` e cada uma implementa `atualizar` do seu jeito |
 | `modelo.Arma` | Dano, alcance e tempo de recarga do golpe |
 | `modelo.Mapa` | Mapa do Tiled: camadas de tiles, o que é sólido, decorações, pontos marcados e a saída |
-| `modelo.Decoracao` | Objeto parado do cenário (árvore, barril, moinho...), com base sólida opcional |
+| `modelo.Decoracao` | Objeto parado do cenário (árvore, barril, moinho...), com colisores opcionais |
 | `modelo.Efeito` | Efeito curto: poeira, penas, brilho, fumaça |
 | `modelo.Partida` | Cena atual, pontos, recorde, missão, raide e onda |
 | `modelo.Dialogo` | Fala atual de uma conversa |
@@ -72,7 +72,7 @@ recursos/    mapas, imagens, sons e músicas
 1. `ControleJogo.iniciar()` roda um laço que, a cada 1/60 de segundo, chama `atualizar()` e depois `janela.desenhar()`.
 2. `atualizar()` olha a cena atual (`INICIAL`, `VILA`, `CAMPO` ou `FIM`) e aplica as regras dela.
 3. `TelaJogo.paintComponent()` lê o `Mundo` e desenha a mesma cena. A câmera segue o herói.
-4. Colisão: cada `Entidade` tem um retângulo (`getArea`). O movimento é desfeito se o retângulo encostar num tile sólido, na base de uma decoração ou em outra entidade, e o golpe acerta as galinhas cujo retângulo cruza a área do golpe.
+4. Colisão: cada `Entidade` tem um retângulo (`getArea`). O movimento é desfeito se o retângulo encostar num tile sólido, num colisor (do mapa ou de uma decoração) ou em outra entidade, e o golpe acerta as galinhas cujo retângulo cruza a área do golpe.
 5. Profundidade: decorações, animais, moradores, galinhas e herói entram numa fila ordenada pela altura do pé. Quem está mais acima é desenhado primeiro, então o herói passa atrás de uma árvore e na frente de outra.
 6. Galinhas e efeitos ficam em vetores de tamanho fixo: os que saem de jogo ficam inativos e são reaproveitados.
 
@@ -104,7 +104,32 @@ Arquivos:
 | Ponto(s) `galinha` | Galinhas no chão ao entrar no campo. O mapa padrão tem uma só: as outras vêm com a raide |
 | Retângulo chamado `saida` | Na vila, leva ao campo (depois da missão); no campo, é a fuga |
 
-Algumas decorações têm a base sólida (árvores, poços, barris, caixotes, baús, bigorna, fogueira, pedras...). A lista fica em `BASES_SOLIDAS`, em `src/dao/DaoMapa.java`. `sombra` fica sempre no chão; `moinho` e `fumaca1` a `fumaca5` ficam por cima de tudo.
+`sombra` fica sempre no chão; `moinho` e `fumaca1` a `fumaca5` ficam por cima de tudo.
+
+### Colisores
+
+Há três jeitos de criar parede, e todos são editados no Tiled:
+
+| Onde | Tamanho | Bom para |
+|---|---|---|
+| Camada de tiles `colisao` | Tile inteiro (16×16) | Água, cercas, paredes de casas |
+| Camada de objetos `colisores` | Retângulo livre, de qualquer tamanho | Cantos, meio-tile, fechar uma passagem |
+| Colisão de cada imagem no `objetos.tsx` | Desenhada uma vez por imagem | Tronco das árvores, base de barris, poços... |
+
+**Tile inteiro:** selecione a camada `colisao`. Pinte com o Carimbo (B) para criar parede e apague com a Borracha (E) para abrir passagem.
+
+**Retângulo livre:**
+1. Selecione a camada de objetos `colisores` (vermelha).
+2. Use "Inserir Retângulo" (R) e arraste no mapa. Para ajustar, use "Selecionar Objetos" (S): arraste as alças ou digite X, Y, Largura e Altura no painel Propriedades.
+3. Segure Ctrl ao arrastar para encaixar na grade. Polígonos e elipses valem pela caixa em volta deles.
+
+**Colisão de uma decoração** (vale para todas as cópias dela, nos dois mapas):
+1. No painel Tilesets, abra a aba `objetos` e clique no botão "Editar Tileset" (ícone de chave inglesa), que abre o `objetos.tsx`.
+2. Clique na imagem (por exemplo `arvore1`) e abra o Editor de Colisão: **Exibir → Visualizações e Barras de Ferramentas → Editor de Colisão de Tile** (em inglês, *View → Views and Toolbars → Tile Collision Editor*).
+3. Desenhe ou ajuste o retângulo vermelho. Pode ter mais de um. Para que a decoração possa ser atravessada, apague todos.
+4. Salve o tileset com Ctrl+S.
+
+Para ver os colisores das decorações no mapa, ligue **Exibir → Mostrar Formas de Colisão de Tile** (*View → Show Tile Collision Shapes*).
 
 **Animações:** se existir `recursos/objetos/animados/<nome>.png`, o jogo usa essa tira (quadros lado a lado, cada um do tamanho da imagem parada) no lugar da imagem parada. É assim que as árvores balançam, o moinho gira e as chaminés soltam fumaça.
 

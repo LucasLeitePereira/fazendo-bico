@@ -23,29 +23,34 @@ import modelo.Mapa;
  * Lê mapas feitos no Tiled (https://www.mapeditor.org), no formato .tmx.
  *
  * O que o jogo entende:
- * - camadas de tiles em CSV (o padrão do Tiled). A camada "colisao" diz o que é sólido
+ * - camadas de tiles em CSV (o padrão do Tiled). A camada "colisao" diz quais tiles são sólidos
  *   e não é desenhada; camadas com nome começando por "cima" ficam por cima dos personagens;
  * - a camada de objetos: objetos de imagem (decorações e animais, pelo nome do arquivo da imagem),
- *   pontos com nome (heroi, morador1...morador4, galinha) e o retângulo "saida".
+ *   pontos com nome (heroi, morador1...morador4, galinha) e o retângulo "saida";
+ * - a camada de objetos "colisores": cada retângulo desenhado nela é sólido, de qualquer tamanho;
+ * - no objetos.tsx, a colisão de cada imagem, feita no Editor de Colisão do Tiled
+ *   (o tronco da árvore, a base do barril). Imagem sem colisão pode ser atravessada.
  */
 public class DaoMapa {
     // Os três bits mais altos do código guardam se o tile foi espelhado no Tiled.
     private static final long ESPELHADO_NA_HORIZONTAL = 0x80000000L;
     private static final long SEM_ESPELHAMENTO = 0x0FFFFFFFL;
 
+    private static final String CAMADA_DE_COLISORES = "colisores";
+
     private static final String[] ANIMAIS = { "vaca", "porco", "ovelha", "pato" };
     private static final String[] NO_CHAO = { "sombra", "sombra_moinho" };
     private static final String[] POR_CIMA = { "moinho", "fumaca1", "fumaca2", "fumaca3", "fumaca4", "fumaca5" };
 
     /**
-     * Decorações que o herói não atravessa: "nome:largura:altura" da base sólida, no pé da imagem.
+     * Uma imagem do tileset de objetos: o nome do arquivo, o tamanho e as partes sólidas.
      */
-    private static final String[] BASES_SOLIDAS = {
-        "arvore1:8:5", "arvore2:8:5", "poco:16:8", "poco_coberto:16:8", "barril:11:6", "barril_aberto:11:6",
-        "barril_agua:11:6", "barril_espadas:11:6", "caixote1:14:7", "caixote2:14:7", "bau:14:7", "bau_aberto:14:7",
-        "bigorna:18:6", "cocho:26:7", "fogueira:18:8", "bote_terra:28:10", "pedra:8:5", "minerio_carvao:8:5",
-        "minerio_ouro:8:5", "chamine_cozinha:23:8"
-    };
+    private static class ImagemDeObjeto {
+        String nome;
+        int largura;
+        int altura;
+        Rectangle[] colisores;
+    }
 
     /**
      * Lê um mapa da pasta recursos. Exemplo de caminho: "/mapas/vila.tmx".
@@ -55,9 +60,10 @@ public class DaoMapa {
         String pasta = caminho.substring(0, caminho.lastIndexOf('/') + 1);
 
         Mapa mapa = new Mapa(inteiro(raiz, "width"), inteiro(raiz, "height"));
-        Map<Integer, String> nomesDosObjetos = new HashMap<Integer, String>();
+        Map<Integer, ImagemDeObjeto> imagensDosObjetos = new HashMap<Integer, ImagemDeObjeto>();
         List<Decoracao> decoracoes = new ArrayList<Decoracao>();
         List<Decoracao> animais = new ArrayList<Decoracao>();
+        List<Rectangle> colisores = new ArrayList<Rectangle>();
 
         NodeList filhos = raiz.getChildNodes();
         for (int i = 0; i < filhos.getLength(); i++) {
@@ -68,16 +74,19 @@ public class DaoMapa {
             Element elemento = (Element) filho;
             String tag = elemento.getTagName();
             if (tag.equals("tileset")) {
-                lerTileset(elemento, pasta, mapa, nomesDosObjetos);
+                lerTileset(elemento, pasta, mapa, imagensDosObjetos);
             } else if (tag.equals("layer")) {
                 lerCamada(elemento, mapa);
+            } else if (tag.equals("objectgroup") && elemento.getAttribute("name").equals(CAMADA_DE_COLISORES)) {
+                lerColisores(elemento, colisores);
             } else if (tag.equals("objectgroup")) {
-                lerObjetos(elemento, mapa, nomesDosObjetos, decoracoes, animais);
+                lerObjetos(elemento, mapa, imagensDosObjetos, decoracoes, animais);
             }
         }
 
         mapa.setDecoracoes(decoracoes.toArray(new Decoracao[decoracoes.size()]));
         mapa.setAnimais(animais.toArray(new Decoracao[animais.size()]));
+        mapa.setColisores(colisores.toArray(new Rectangle[colisores.size()]));
         return mapa;
     }
 
@@ -87,7 +96,7 @@ public class DaoMapa {
      * Um tileset pode ser uma imagem grande cortada em tiles (o chão) ou
      * uma coleção de imagens soltas (as decorações). Os dois ficam em arquivos .tsx.
      */
-    private void lerTileset(Element tileset, String pasta, Mapa mapa, Map<Integer, String> nomesDosObjetos) {
+    private void lerTileset(Element tileset, String pasta, Mapa mapa, Map<Integer, ImagemDeObjeto> imagensDosObjetos) {
         int primeiroCodigo = inteiro(tileset, "firstgid");
         String pastaDoTileset = pasta;
         Element dados = tileset;
@@ -110,8 +119,18 @@ public class DaoMapa {
             Element tile = (Element) tiles.item(i);
             Element imagemDoTile = primeiroFilho(tile, "image");
             if (imagemDoTile != null) {
-                int codigo = primeiroCodigo + inteiro(tile, "id");
-                nomesDosObjetos.put(codigo, nomeDoArquivo(imagemDoTile.getAttribute("source")));
+                ImagemDeObjeto imagemDeObjeto = new ImagemDeObjeto();
+                imagemDeObjeto.nome = nomeDoArquivo(imagemDoTile.getAttribute("source"));
+                imagemDeObjeto.largura = inteiro(imagemDoTile, "width");
+                imagemDeObjeto.altura = inteiro(imagemDoTile, "height");
+                // O Editor de Colisão do Tiled grava as formas num <objectgroup> dentro do tile.
+                List<Rectangle> formas = new ArrayList<Rectangle>();
+                Element colisao = primeiroFilho(tile, "objectgroup");
+                if (colisao != null) {
+                    lerColisores(colisao, formas);
+                }
+                imagemDeObjeto.colisores = formas.toArray(new Rectangle[formas.size()]);
+                imagensDosObjetos.put(primeiroCodigo + inteiro(tile, "id"), imagemDeObjeto);
             }
         }
     }
@@ -150,7 +169,7 @@ public class DaoMapa {
 
     // ---------- Objetos ----------
 
-    private void lerObjetos(Element grupo, Mapa mapa, Map<Integer, String> nomesDosObjetos,
+    private void lerObjetos(Element grupo, Mapa mapa, Map<Integer, ImagemDeObjeto> imagensDosObjetos,
             List<Decoracao> decoracoes, List<Decoracao> animais) {
         NodeList objetos = grupo.getElementsByTagName("object");
         for (int i = 0; i < objetos.getLength(); i++) {
@@ -163,17 +182,20 @@ public class DaoMapa {
 
             if (objeto.getAttribute("gid").length() > 0) {
                 long codigoCompleto = Long.parseLong(objeto.getAttribute("gid"));
-                String tipo = nomesDosObjetos.get((int) (codigoCompleto & SEM_ESPELHAMENTO));
-                if (tipo == null) {
+                ImagemDeObjeto imagem = imagensDosObjetos.get((int) (codigoCompleto & SEM_ESPELHAMENTO));
+                if (imagem == null) {
                     continue;
                 }
+                String tipo = imagem.nome;
                 boolean espelhada = (codigoCompleto & ESPELHADO_NA_HORIZONTAL) != 0;
                 // No Tiled, objetos de imagem têm a posição no canto de baixo, à esquerda.
                 Decoracao decoracao = new Decoracao(tipo, x, y - altura, largura, altura, espelhada, camadaDo(tipo));
                 if (contem(ANIMAIS, tipo)) {
                     animais.add(decoracao);
                 } else {
-                    definirBase(decoracao);
+                    if (imagem.largura > 0 && imagem.altura > 0) {
+                        decoracao.definirColisores(imagem.colisores, imagem.largura, imagem.altura);
+                    }
                     decoracoes.add(decoracao);
                 }
             } else if (nome.equals("saida")) {
@@ -194,13 +216,49 @@ public class DaoMapa {
         return Decoracao.EM_PE;
     }
 
-    private void definirBase(Decoracao decoracao) {
-        for (int i = 0; i < BASES_SOLIDAS.length; i++) {
-            String[] partes = BASES_SOLIDAS[i].split(":");
-            if (partes[0].equals(decoracao.getTipo())) {
-                decoracao.definirBaseSolida(Integer.parseInt(partes[1]), Integer.parseInt(partes[2]));
-                return;
+    /**
+     * Lê as formas de um grupo de objetos como retângulos sólidos. Retângulo e elipse valem
+     * pela caixa deles; polígono vale pelo retângulo que o envolve; pontos são ignorados.
+     */
+    private void lerColisores(Element grupo, List<Rectangle> colisores) {
+        NodeList objetos = grupo.getElementsByTagName("object");
+        for (int i = 0; i < objetos.getLength(); i++) {
+            Element objeto = (Element) objetos.item(i);
+            double x = decimal(objeto, "x");
+            double y = decimal(objeto, "y");
+            double largura = decimal(objeto, "width");
+            double altura = decimal(objeto, "height");
+
+            Element poligono = primeiroFilho(objeto, "polygon");
+            if (poligono != null) {
+                double menorX = Double.MAX_VALUE;
+                double menorY = Double.MAX_VALUE;
+                double maiorX = -Double.MAX_VALUE;
+                double maiorY = -Double.MAX_VALUE;
+                String[] pontos = poligono.getAttribute("points").trim().split("\\s+");
+                for (int j = 0; j < pontos.length; j++) {
+                    String[] coordenadas = pontos[j].split(",");
+                    double pontoX = Double.parseDouble(coordenadas[0]);
+                    double pontoY = Double.parseDouble(coordenadas[1]);
+                    menorX = Math.min(menorX, pontoX);
+                    menorY = Math.min(menorY, pontoY);
+                    maiorX = Math.max(maiorX, pontoX);
+                    maiorY = Math.max(maiorY, pontoY);
+                }
+                x = x + menorX;
+                y = y + menorY;
+                largura = maiorX - menorX;
+                altura = maiorY - menorY;
             }
+
+            int larguraInteira = (int) Math.round(largura);
+            int alturaInteira = (int) Math.round(altura);
+            if (larguraInteira <= 0 || alturaInteira <= 0) {
+                continue;
+            }
+            int xInteiro = (int) Math.round(x);
+            int yInteiro = (int) Math.round(y);
+            colisores.add(new Rectangle(xInteiro, yInteiro, larguraInteira, alturaInteira));
         }
     }
 

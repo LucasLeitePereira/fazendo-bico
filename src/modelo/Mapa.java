@@ -28,6 +28,8 @@ public class Mapa {
     private Decoracao[] animais = new Decoracao[0];
     private Map<String, List<Point>> marcadores = new HashMap<String, List<Point>>();
     private Rectangle saida;
+    // Retângulos livres da camada de objetos "colisores" do Tiled.
+    private Rectangle[] colisores = new Rectangle[0];
 
     public Mapa(int colunas, int linhas) {
         this.colunas = colunas;
@@ -106,12 +108,26 @@ public class Mapa {
             }
         }
 
+        for (int i = 0; i < colisores.length; i++) {
+            if (colisores[i].intersects(area)) {
+                return true;
+            }
+        }
+
         for (int i = 0; i < decoracoes.length; i++) {
             if (decoracoes[i].bloqueia(area)) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void setColisores(Rectangle[] colisores) {
+        this.colisores = colisores;
+    }
+
+    public Rectangle[] getColisores() {
+        return colisores;
     }
 
     public boolean isSolido(int coluna, int linha) {
