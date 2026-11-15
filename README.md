@@ -1,6 +1,6 @@
-# Raide das Galinhas
+# Fazendo Bico
 
-> Nome provisório. Para trocar, mude `NOME_DO_JOGO` em `src/view/Janela.java`.
+> O nome fica em `NOME_DO_JOGO`, em `src/view/Janela.java`.
 
 Jogo 2D com visão de cima feito em Java Swing para o trabalho G2 de Programação Orientada a Objetos.
 
@@ -28,7 +28,7 @@ Em uma IDE (Eclipse, IntelliJ, NetBeans), marque `src` **e** `recursos` como pas
 | Enter | Confirmar |
 | Esc | Voltar à tela inicial / sair |
 | F11 ou Alt+Enter | Liga e desliga a tela cheia |
-| - e + | Volume da música, em qualquer tela (também no menu inicial, na opção "Música", com esquerda/direita). Começa em 50% |
+| - e + | Volume da música, em qualquer tela (também no menu inicial, na opção "Música", com esquerda/direita). Começa em 40%. Os efeitos tocam fixos em 30% |
 
 A janela também pode ser esticada ou maximizada. A arte é desenhada em 320×240 e ampliada para caber na tela, com faixas pretas nas sobras. Para não pesar, a cena é montada numa escala inteira de até 3× e depois esticada. Se o PC estiver lento, essa escala cai sozinha.
 
@@ -174,22 +174,24 @@ Todos os arquivos são opcionais, menos os mapas. Sem uma imagem, o jogo desenha
 
 **Sons (WAV PCM de 16 bits; MP3 e OGG não funcionam)**
 
-Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar > Exportar como WAV" (PCM de 16 bits). Hoje só existem `vila.wav` e `passos.wav`; os outros nomes ficam em silêncio até alguém colocar o arquivo. A música de luta entra como `raide.wav`.
+Para converter uma música MP3/M4A: abra no Audacity e use "Arquivo > Exportar > Exportar como WAV" (PCM de 16 bits). Os nomes da tabela sem arquivo ficam em silêncio até alguém colocar o arquivo.
 
 | Arquivo | Quando toca |
 |---|---|
 | `recursos/musicas/inicial.wav` | Tela inicial (hoje em silêncio) |
 | `recursos/musicas/vila.wav` | Vila (tem: convertida de `entrada/soundtrack/musica_vila.mp3`) |
 | `recursos/musicas/campo.wav` | Campo, antes da raide (hoje em silêncio, de propósito) |
-| `recursos/musicas/raide.wav` | Durante a raide (música de luta, a definir) |
+| `recursos/musicas/raide.wav` | Durante a raide; entra quando o canto do galo (`sons/raide.wav`) termina (tem: `entrada/soundtrack/musica_raid.wav`) |
 | `recursos/musicas/fuga.wav`, `derrota.wav` | Tela final |
 | `recursos/sons/menu.wav` | Mudar de opção no menu |
 | `recursos/sons/dialogo.wav` | Abrir ou avançar uma conversa |
 | `recursos/sons/missao.wav` | Aceitar a missão |
-| `recursos/sons/golpe.wav` | Herói ataca |
-| `recursos/sons/acerto.wav` | Golpe acerta sem matar |
+| `recursos/sons/erro.wav` | Golpe que não pega nenhuma galinha (tem: `OOT_Sword_Clang1.wav`) |
+| `recursos/sons/acerto.wav` | Golpe que pega pelo menos uma galinha (tem: `OOT_Sword_Clang2.wav`) |
 | `recursos/sons/galinha.wav` | Galinha derrotada |
-| `recursos/sons/raide.wav` | Começo da raide |
+| `recursos/sons/raide.wav` | Canto do galo quando a primeira galinha cai (tem: `OOT_6amRooster.wav`) |
+| `recursos/sons/galinha_ciscando.wav` | Galinha do campo, antes da raide, a cada 3 a 6 segundos (tem: `OOT_Cucco1.wav`) |
+| `recursos/sons/galinha_raide.wav` | Quando a raide lança galinhas, no máximo uma vez por segundo (tem: `OOT_Cucco2.wav`) |
 | `recursos/sons/dano.wav` | Herói leva dano |
 | `recursos/sons/passos.wav` | Passos na grama, em loop enquanto o herói anda (tem: `entrada/soundtrack/caminhando_grama.wav`) |
 
@@ -197,7 +199,12 @@ As músicas ficam inteiras na memória: prefira 22 kHz ou 44 kHz e alguns minuto
 
 ## Créditos
 
-- Tileset, personagens, animais, decorações, efeitos e interface: **Sunnyside World**, de Daniel Diggle (itch.io). Confirmar os termos da licença na página do pacote.
+Os mesmos créditos aparecem no jogo, na opção "Créditos" do menu.
+
+- Desenvolvedores: **Lucas Leite, Lucas Cardoso, Tiago Rocha e Leonardo Oliveira**.
+- Arte (tileset, personagens, animais, decorações, efeitos e interface): **Sunnyside World**, de Daniel Diggle (itch.io). Confirmar os termos da licença na página do pacote.
+- Sons: **The Legend of Zelda: Ocarina of Time**.
+- Músicas: **Pokémon Emerald** e **Crash of Titans**.
 - Mapas editados com o **Tiled** (<https://www.mapeditor.org>). A vila foi recortada da cena de exemplo que vem no pacote.
 
 Liste aqui a origem e a licença de cada outro sprite, som e música usados.

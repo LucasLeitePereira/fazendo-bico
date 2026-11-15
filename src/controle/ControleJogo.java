@@ -3,6 +3,7 @@ package controle;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
+import java.util.Random;
 
 import dao.DaoFalas;
 import dao.DaoMapa;
@@ -31,6 +32,12 @@ import view.Som;
 public class ControleJogo {
     private static final int MILISSEGUNDOS_POR_QUADRO = 1000 / 60;
     private static final String SOM_DOS_PASSOS = "passos";
+    // A galinha do campo cacareja de tempos em tempos: entre 3 e 6 segundos.
+    private static final int PRIMEIRO_CACAREJO = 60;
+    private static final int MENOR_PAUSA_ENTRE_CACAREJOS = 180;
+    private static final int MAIOR_PAUSA_ENTRE_CACAREJOS = 360;
+    // As galinhas da raide cacarejam no máximo uma vez por segundo.
+    private static final int PAUSA_ENTRE_CACAREJOS_DA_RAIDE = 60;
     private static final int QUADROS_DE_TREMOR_DA_RAIDE = 90;
     private static final int QUADROS_DE_TREMOR_DO_DANO = 8;
     private static final float RECUO_NA_SAIDA_FECHADA = 6;
@@ -64,6 +71,11 @@ public class ControleJogo {
     // Posição do herói no quadro anterior: os passos só soam se ele saiu do lugar.
     private float ultimaPosicaoX;
     private float ultimaPosicaoY;
+    private Random sorteio = new Random();
+    private int quadrosAteCacarejar;
+    private int quadrosDesdeOCacarejoDaRaide;
+    // A música da raide espera o canto do galo terminar. Zero = nada esperando.
+    private int quadrosAteAMusicaDaRaide;
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
@@ -115,6 +127,9 @@ public class ControleJogo {
                 break;
             case FIM:
                 atualizarTelaFinal();
+                break;
+            case CREDITOS:
+                atualizarCreditos();
                 break;
         }
         atualizarSomDosPassos();
@@ -181,6 +196,9 @@ public class ControleJogo {
         if (teclado.consumirConfirmar()) {
             if (partida.getOpcaoDoMenu() == Partida.OPCAO_JOGAR) {
                 comecarPartida();
+            } else if (partida.getOpcaoDoMenu() == Partida.OPCAO_CREDITOS) {
+                mudarCena(Cena.CREDITOS);
+                som.tocarEfeito("menu");
             } else if (partida.getOpcaoDoMenu() == Partida.OPCAO_SAIR) {
                 jogando = false;
             }
@@ -188,6 +206,18 @@ public class ControleJogo {
 
         if (teclado.consumirVoltar()) {
             jogando = false;
+        }
+    }
+
+    // ---------- Créditos ----------
+
+    private void atualizarCreditos() {
+        boolean apertouConfirmar = teclado.consumirConfirmar();
+        boolean apertouVoltar = teclado.consumirVoltar();
+        boolean apertouAcao = teclado.consumirAcao();
+        if (apertouConfirmar || apertouVoltar || apertouAcao) {
+            mudarCena(Cena.INICIAL);
+            som.tocarEfeito("menu");
         }
     }
 
@@ -206,6 +236,7 @@ public class ControleJogo {
         mundo.getDialogo().fechar();
         mundo.recolherTodasAsGalinhas();
         mundo.getPartida().setRaideAtiva(false);
+        quadrosAteAMusicaDaRaide = 0;
         mudarCena(Cena.INICIAL);
         som.tocarMusica("inicial");
     }
@@ -398,6 +429,9 @@ public class ControleJogo {
         heroi.setCaminhando(true);
         heroi.setAndando(true);
         mundo.getPartida().comecarEntrada();
+        quadrosAteCacarejar = PRIMEIRO_CACAREJO;
+        quadrosDesdeOCacarejoDaRaide = PAUSA_ENTRE_CACAREJOS_DA_RAIDE;
+        quadrosAteAMusicaDaRaide = 0;
 
         mudarCena(Cena.CAMPO);
         som.tocarMusica("campo");
@@ -432,6 +466,7 @@ public class ControleJogo {
             return;
         }
         mundo.getPartida().contarQuadroDaEntrada();
+        atualizarCacarejoDaGalinhaDoCampo();
         if (mundo.getHeroi().isCaminhando()) {
             atualizarEntradaNoCampo();
             return;
@@ -461,19 +496,26 @@ public class ControleJogo {
         if (teclado.consumirAcao() && heroi.podeAtacar()) {
             heroi.atacar();
             heroi.setAndando(false);
-            som.tocarEfeito("golpe");
         }
         if (heroi.golpeAcertaAgora()) {
-            aplicarGolpe();
+            boolean acertou = aplicarGolpe();
+            if (acertou) {
+                som.tocarEfeito("acerto");
+            } else {
+                som.tocarEfeito("erro");
+            }
         }
 
         atualizarGalinhas();
-        controleRaide.atualizar(mundo);
+        boolean lancouGalinhas = controleRaide.atualizar(mundo);
+        atualizarCacarejoDaRaide(lancouGalinhas);
+        atualizarMusicaDaRaide();
         verificarGalinhasAcertandoOHeroi();
         partida.diminuirTremor();
 
         if (!heroi.estaVivo()) {
             heroi.setAndando(false);
+            quadrosAteAMusicaDaRaide = 0;
             som.pararMusica();
         } else if (heroiEstaNaSaida()) {
             terminarPartida(true);
@@ -492,14 +534,55 @@ public class ControleJogo {
         }
     }
 
-    private void aplicarGolpe() {
+    /**
+     * Cacarejo da galinha que cisca no campo, de tempos em tempos, até a raide começar.
+     */
+    private void atualizarCacarejoDaGalinhaDoCampo() {
+        if (mundo.getPartida().isRaideAtiva() || !mundo.temGalinhaCiscando()) {
+            return;
+        }
+        quadrosAteCacarejar--;
+        if (quadrosAteCacarejar <= 0) {
+            som.tocarEfeito("galinha_ciscando");
+            int variacao = MAIOR_PAUSA_ENTRE_CACAREJOS - MENOR_PAUSA_ENTRE_CACAREJOS + 1;
+            quadrosAteCacarejar = MENOR_PAUSA_ENTRE_CACAREJOS + sorteio.nextInt(variacao);
+        }
+    }
+
+    private void atualizarCacarejoDaRaide(boolean lancouGalinhas) {
+        quadrosDesdeOCacarejoDaRaide++;
+        if (lancouGalinhas && quadrosDesdeOCacarejoDaRaide >= PAUSA_ENTRE_CACAREJOS_DA_RAIDE) {
+            som.tocarEfeito("galinha_raide");
+            quadrosDesdeOCacarejoDaRaide = 0;
+        }
+    }
+
+    /**
+     * Conta o tempo do canto do galo; quando ele acaba, entra a música da raide.
+     */
+    private void atualizarMusicaDaRaide() {
+        if (quadrosAteAMusicaDaRaide <= 0) {
+            return;
+        }
+        quadrosAteAMusicaDaRaide--;
+        if (quadrosAteAMusicaDaRaide == 0) {
+            som.tocarMusica("raide");
+        }
+    }
+
+    /**
+     * Devolve true se o golpe pegou pelo menos uma galinha.
+     */
+    private boolean aplicarGolpe() {
         Heroi heroi = mundo.getHeroi();
         Rectangle areaDoGolpe = heroi.getAreaDoGolpe();
         Galinha[] galinhas = mundo.getGalinhas();
+        boolean acertou = false;
 
         for (int i = 0; i < galinhas.length; i++) {
             Galinha galinha = galinhas[i];
             if (galinha.isAtiva() && areaDoGolpe.intersects(galinha.getArea())) {
+                acertou = true;
                 float centroX = galinha.getCentroX();
                 float centroY = galinha.getCentroY() - 6;
                 boolean morreu = galinha.receberGolpe(heroi.getArma().getDano(), heroi.getDirecaoDoOlhar(), mundo.getMapa());
@@ -508,11 +591,10 @@ public class ControleJogo {
                     mundo.criarEfeito(Efeito.FUMACA, centroX, centroY + 4, false);
                     mundo.criarEfeito(Efeito.BRILHO, centroX, centroY - 10, false);
                     galinhaDerrotada();
-                } else {
-                    som.tocarEfeito("acerto");
                 }
             }
         }
+        return acertou;
     }
 
     private void galinhaDerrotada() {
@@ -523,8 +605,10 @@ public class ControleJogo {
         if (!partida.isRaideAtiva()) {
             controleRaide.iniciar(partida);
             partida.tremer(QUADROS_DE_TREMOR_DA_RAIDE);
+            // Primeiro o galo canta; a música da luta entra quando ele termina.
+            som.pararMusica();
             som.tocarEfeito("raide");
-            som.tocarMusica("raide");
+            quadrosAteAMusicaDaRaide = som.duracaoDoEfeitoEmMilissegundos("raide") / MILISSEGUNDOS_POR_QUADRO + 1;
         }
     }
 
@@ -556,6 +640,7 @@ public class ControleJogo {
         Partida partida = mundo.getPartida();
         partida.setFugiu(fugiu);
         partida.setRaideAtiva(false);
+        quadrosAteAMusicaDaRaide = 0;
         mundo.recolherTodasAsGalinhas();
 
         if (partida.atualizarRecorde()) {

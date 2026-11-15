@@ -280,8 +280,11 @@ public class TelaJogo extends JPanel {
             case FIM:
                 desenharTelaFinal(g2, partida);
                 break;
+            case CREDITOS:
+                desenharCreditos(g2);
+                break;
         }
-        if (partida.getCena() != Cena.INICIAL) {
+        if (partida.getCena() != Cena.INICIAL && partida.getCena() != Cena.CREDITOS) {
             desenharAvisoDeVolume(g2);
         }
     }
@@ -709,14 +712,14 @@ public class TelaJogo extends JPanel {
         int largura = 128;
         int x = (LARGURA - largura) / 2;
         int y = 112;
-        caixaEscura.desenhar(g, x, y, largura, 70);
+        caixaEscura.desenhar(g, x, y, largura, 88);
 
         g.setFont(Texto.MEDIA);
         String volume = mundo.getConfiguracao().getVolumeDaMusica() + "%";
         if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
             volume = "< " + volume + " >";
         }
-        String[] opcoes = { "Jogar", "Música: " + volume, "Sair" };
+        String[] opcoes = { "Jogar", "Música: " + volume, "Créditos", "Sair" };
         for (int i = 0; i < opcoes.length; i++) {
             int linhaY = y + 21 + i * 18;
             Color cor = new Color(220, 200, 180);
@@ -730,6 +733,51 @@ public class TelaJogo extends JPanel {
                 }
             }
             Texto.escrever(g, opcoes[i], x + 32, linhaY, cor);
+        }
+    }
+
+    // ---------- Créditos ----------
+
+    private static final String[] TITULOS_DOS_CREDITOS = { "Desenvolvedores", "Arte", "Sons", "Músicas" };
+    private static final String[][] LINHAS_DOS_CREDITOS = {
+        { "Lucas Leite, Lucas Cardoso,", "Tiago Rocha e Leonardo Oliveira" },
+        { "Daniel Diggle (Sunnyside World)" },
+        { "The Legend of Zelda: Ocarina of Time" },
+        { "Pokémon Emerald e Crash of Titans" }
+    };
+
+    private void desenharCreditos(Graphics2D g) {
+        desenharVilaAoFundo(g);
+
+        int largura = 260;
+        int x = (LARGURA - largura) / 2;
+        int y = 24;
+        caixaClara.desenhar(g, x, y, largura, 176);
+
+        g.setFont(Texto.GRANDE);
+        String titulo = "Créditos";
+        Texto.escreverComContorno(g, titulo, Texto.centralizar(g, titulo, LARGURA / 2), y + 28,
+                COR_DO_TITULO, new Color(70, 35, 20), 1f);
+
+        int linhaY = y + 50;
+        for (int i = 0; i < TITULOS_DOS_CREDITOS.length; i++) {
+            g.setFont(Texto.MEDIA);
+            String secao = TITULOS_DOS_CREDITOS[i];
+            Texto.escreverSemSombra(g, secao, Texto.centralizar(g, secao, LARGURA / 2), linhaY, new Color(140, 60, 30));
+            linhaY = linhaY + 12;
+            g.setFont(Texto.NORMAL);
+            String[] linhas = LINHAS_DOS_CREDITOS[i];
+            for (int j = 0; j < linhas.length; j++) {
+                Texto.escreverSemSombra(g, linhas[j], Texto.centralizar(g, linhas[j], LARGURA / 2), linhaY,
+                        COR_DO_TEXTO_ESCURO);
+                linhaY = linhaY + 10;
+            }
+            linhaY = linhaY + 8;
+        }
+
+        g.setFont(Texto.NORMAL);
+        if (piscando(500)) {
+            Texto.escreverCentralizado(g, "Enter ou Esc para voltar", 226, Color.WHITE);
         }
     }
 

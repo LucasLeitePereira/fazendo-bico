@@ -4,5 +4,6 @@ public enum Cena {
     INICIAL,
     VILA,
     CAMPO,
-    FIM
+    FIM,
+    CREDITOS
 }

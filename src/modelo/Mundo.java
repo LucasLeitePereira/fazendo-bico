@@ -59,6 +59,18 @@ public class Mundo {
     }
 
     /**
+     * Há alguma galinha no chão (a do campo, antes da raide)?
+     */
+    public boolean temGalinhaCiscando() {
+        for (int i = 0; i < galinhas.length; i++) {
+            if (galinhas[i].isAtiva() && !galinhas[i].isVoando()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Começa um efeito num lugar do mapa. Se todos estiverem em uso, o efeito é ignorado.
      */
     public void criarEfeito(int tipo, float x, float y, boolean espelhado) {

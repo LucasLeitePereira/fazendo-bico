@@ -43,14 +43,17 @@ public class ControleRaide {
         velocidade = VELOCIDADE_INICIAL;
     }
 
-    public void atualizar(Mundo mundo) {
+    /**
+     * Devolve true se lançou alguma galinha neste quadro (para o controle tocar o cacarejo).
+     */
+    public boolean atualizar(Mundo mundo) {
         Partida partida = mundo.getPartida();
         if (!partida.isRaideAtiva()) {
-            return;
+            return false;
         }
         if (quadrosDePreparacao > 0) {
             quadrosDePreparacao--;
-            return;
+            return false;
         }
 
         quadrosNaOnda++;
@@ -58,16 +61,20 @@ public class ControleRaide {
             passarDeOnda(partida);
         }
 
+        boolean lancou = false;
         quadrosAteProximaGalinha--;
         if (quadrosAteProximaGalinha <= 0) {
             int quantidade = 1 + partida.getOnda() / 3;
             for (int i = 0; i < quantidade; i++) {
-                lancarGalinha(mundo);
+                if (lancarGalinha(mundo)) {
+                    lancou = true;
+                }
             }
             quadrosAteProximaGalinha = intervalo;
         }
 
         recolherGalinhasDistantes(mundo);
+        return lancou;
     }
 
     private void passarDeOnda(Partida partida) {
@@ -83,10 +90,10 @@ public class ControleRaide {
     /**
      * Sorteia um ponto num círculo em volta do herói (fora da tela) e lança a galinha na direção dele.
      */
-    private void lancarGalinha(Mundo mundo) {
+    private boolean lancarGalinha(Mundo mundo) {
         Galinha galinha = mundo.pegarGalinhaLivre();
         if (galinha == null) {
-            return;
+            return false;
         }
         Heroi heroi = mundo.getHeroi();
 
@@ -101,6 +108,7 @@ public class ControleRaide {
         }
 
         galinha.lancarContra(inicioX, inicioY, alvoX, alvoY, velocidadeDoVoo);
+        return true;
     }
 
     /**

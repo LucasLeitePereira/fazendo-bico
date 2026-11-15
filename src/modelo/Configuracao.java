@@ -4,7 +4,7 @@ package modelo;
  * Ajustes do jogador que valem para o jogo todo, fora da partida (por enquanto, o volume da música).
  */
 public class Configuracao {
-    public static final int VOLUME_INICIAL = 50;
+    public static final int VOLUME_INICIAL = 40;
     public static final int PASSO_DO_VOLUME = 10;
     // Por quanto tempo o aviso "Música: 60%" fica na tela depois de mudar o volume.
     public static final int QUADROS_DO_AVISO_DE_VOLUME = 90;

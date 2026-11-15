@@ -17,7 +17,7 @@ public class Janela extends JFrame {
     private static final long serialVersionUID = 1L;
 
     // Troque aqui quando a equipe decidir o nome do jogo.
-    public static final String NOME_DO_JOGO = "Raide das Galinhas";
+    public static final String NOME_DO_JOGO = "Fazendo Bico";
 
     private TelaJogo tela;
     private boolean telaCheia = false;

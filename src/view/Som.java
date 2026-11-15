@@ -14,6 +14,9 @@ import javax.sound.sampled.FloatControl;
  * Se um arquivo não existir, o jogo continua em silêncio.
  */
 public class Som {
+    // Os efeitos (galinhas, espada, galo, passos) tocam mais baixo que a música.
+    private static final int VOLUME_DOS_EFEITOS = 30;
+
     private Clip musicaAtual;
     private int volumeDaMusica = 100;
     private String nomeDaMusicaAtual = "";
@@ -102,9 +105,24 @@ public class Som {
         }
     }
 
+    /**
+     * Quanto tempo o efeito dura. Se o arquivo não existir, devolve 0.
+     */
+    public int duracaoDoEfeitoEmMilissegundos(String nome) {
+        Clip efeito = buscarEfeito(nome);
+        if (efeito == null) {
+            return 0;
+        }
+        return (int) (efeito.getMicrosecondLength() / 1000);
+    }
+
     private Clip buscarEfeito(String nome) {
         if (!efeitos.containsKey(nome)) {
-            efeitos.put(nome, carregar("/sons/" + nome + ".wav"));
+            Clip efeito = carregar("/sons/" + nome + ".wav");
+            if (efeito != null) {
+                aplicarVolume(efeito, VOLUME_DOS_EFEITOS);
+            }
+            efeitos.put(nome, efeito);
         }
         return efeitos.get(nome);
     }
