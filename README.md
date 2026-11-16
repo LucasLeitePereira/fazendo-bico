@@ -1,7 +1,5 @@
 # Fazendo Bico
 
-> O nome fica em `NOME_DO_JOGO`, em `src/view/Janela.java`.
-
 Jogo 2D com visão de cima feito em Java Swing para o trabalho G2 de Programação Orientada a Objetos.
 
 O herói acorda numa vila onde todo mundo odeia galinhas. O prefeito oferece um serviço muito bem pago: derrotar as galinhas do campo. Lá só há uma galinha, ciscando sozinha. Ao derrotá-la, começa a **raide**: ondas cada vez maiores de galinhas furiosas voam contra o herói. Cada galinha derrotada vale pontos. A partida termina quando o herói **foge** (volta pela estrada a oeste do campo, por onde chegou) ou é **derrotado** (perde todos os corações).
