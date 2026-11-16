@@ -220,10 +220,8 @@ As músicas ficam inteiras na memória: prefira 22 kHz ou 44 kHz e alguns minuto
 Os mesmos créditos aparecem no jogo, na opção "Créditos" do menu.
 
 - Desenvolvedores: **Lucas Leite, Lucas Cardoso, Tiago Rocha e Leonardo Oliveira**.
-- Arte (tileset, personagens, animais, decorações, efeitos e interface): **Sunnyside World**, de Daniel Diggle (itch.io). Confirmar os termos da licença na página do pacote.
+- Arte (tileset, personagens, animais, decorações, efeitos e interface): **Sunnyside World**, de [Daniel Diggle](https://itch.io/profile/danieldiggle) (itch.io).
 - Sons: **The Legend of Zelda: Ocarina of Time**.
 - Músicas: **Pokémon Emerald** e **Crash of Titans**.
 - Leitura do controle: **JInput** 2.0.7 e **jutils** 1.0.0 (licença BSD).
 - Mapas editados com o **Tiled** (<https://www.mapeditor.org>). A vila foi recortada da cena de exemplo que vem no pacote.
-
-Liste aqui a origem e a licença de cada outro sprite, som e música usados.
