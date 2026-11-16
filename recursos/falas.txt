@@ -9,44 +9,50 @@
 
 
 # ---------- NPC1: o prefeito. É quem oferece a missão. ----------
-NPC1_NOME=Prefeito Bento
-NPC1_FALA_1=Ah, finalmente acordou! Tenho um serviço pra você.
-NPC1_FALA_2=Tem galinhas no campo, no fim da estrada, a leste. Derrote quantas puder.
-NPC1_FALA_3=Pago 10 moedas por galinha!
-NPC1_FALA_4=...Por que tanto? Ah, você vai descobrir. Digo, não é nada!
+NPC1_NOME=Prefeito Reginaldo
+NPC1_FALA_1=Rapa, é tu mermo, tô com a boa pra tu
+NPC1_FALA_2=Não sei se tu já viu, mas ninguém aqui gosta galinha, esse bixo é uma praga
+NPC1_FALA_3=Eu não gosto porque tenho alergia, fico coçando o nariz demais
+NPC1_FALA_4=Ai nego clipa e fala que eu sou prefeito cherador
+NPC1_FALA_5=Por isso tô com uma missão pra tu
+NPC1_FALA_6=Tem umas galinha no final da estrada, segue reto nessa direita aqui
+NPC1_FALA_7=Pode passar o aço nas galinhas
+NPC1_FALA_8=Te dou 10 conto pra cada uma que tu matar
 
 # O que o prefeito diz se você falar com ele de novo, depois de aceitar a missão.
-NPC1_DEPOIS_DA_MISSAO_1=O campo fica a leste. Siga a estrada da vila até o fim, lá na praia.
-NPC1_DEPOIS_DA_MISSAO_2=Boa sorte. Você vai precisar.
+NPC1_DEPOIS_DA_MISSAO_1=Vai la lek, boa sorte e outra
+NPC1_DEPOIS_DA_MISSAO_2=Melhor do que matar galinha, só piratear jogo da Nintendo
 
 
 # ---------- NPC2 ----------
-NPC2_NOME=Dona Cida
-NPC2_FALA_1=Galinhas? Nem me fale em galinhas.
-NPC2_FALA_2=Uma delas ficou me encarando por três horas semana passada.
-
+NPC2_NOME=Xiquinha sem o quinha é só o Xi
+NPC2_FALA_1=Galinhas? Nem me fale em galinhas
+NPC2_FALA_2=Galinha boa é só em baixo da roda do carro
+NPC2_FALA_3=Quem gosta de galinha é o prefeito cherador kkkkk
 
 # ---------- NPC3 ----------
-NPC3_NOME=Seu Juca
+NPC3_NOME=Seu Jorge sem Jor 
 NPC3_FALA_1=Já reparou que ninguém nesta vila come ovo?
-NPC3_FALA_2=Pois é. Melhor não perguntar.
+NPC3_FALA_2=Os cara lá mandar estender a mão na mesa
 
 
 # ---------- NPC4 ----------
-NPC4_NOME=Tico
-NPC4_FALA_1=Esse galinheiro aqui tá vazio desde o Incidente.
-NPC4_FALA_2=Meu pai diz que galinha não anda em bando. Anda em EXÉRCITO.
+NPC4_NOME=Tico, primo do Quico
+NPC4_FALA_1=Um dia meu pai ouviu batidas na porta
+NPC4_FALA_2=Tinha uma galinha rainha e 1000 galinhas esperando ele na porta
+NPC4_FALA_3=As galinhas mataram meu pai
+NPC4_FALA_4=E aquele pastor cherador não fez nada
 
 
 # ---------- Narração (balões sem nome) ----------
 
 # Começo do jogo, quando o herói acorda.
 ACORDAR_1=Você acorda. Lá fora, alguém grita: "GALINHA NÃO!"
-ACORDAR_2=Melhor ver o que está acontecendo na vila. (Setas para andar, Espaço para falar)
+ACORDAR_2=Melhor ver o que está acontecendo na vila. 
 
 # Quando tenta sair da vila antes de falar com o prefeito.
-SAIDA_FECHADA_1=Melhor falar com o prefeito antes de sair da vila.
+SAIDA_FECHADA_1=Volta, tem que falar com o prefeito cherador primeiro
 
 # Quando o herói termina de entrar no campo.
 CHEGADA_NO_CAMPO_1=O campo. Só uma galinha, ciscando sozinha no meio do mato.
-CHEGADA_NO_CAMPO_2=Parece fácil. (Espaço para atacar. Para fugir, volte pela estrada a oeste)
+CHEGADA_NO_CAMPO_2=Parece fácil.

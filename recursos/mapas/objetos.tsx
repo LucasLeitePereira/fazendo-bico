@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.0" name="objetos" tilewidth="112" tileheight="112" tilecount="70" columns="0">
+<tileset version="1.10" tiledversion="1.12.2" name="objetos" tilewidth="112" tileheight="112" tilecount="70" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image source="../objetos/abobora.png" width="12" height="14"/>
@@ -7,7 +7,7 @@
  <tile id="1">
   <image source="../objetos/arvore1.png" width="32" height="34"/>
   <objectgroup draworder="index" id="2">
-   <object id="1" x="12" y="29" width="8" height="5"/>
+   <object id="1" x="3.10674" y="1.2184" width="26.0226" height="29.8697"/>
   </objectgroup>
  </tile>
  <tile id="2">
