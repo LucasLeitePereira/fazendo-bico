@@ -15,3 +15,5 @@ ASSENTS/
 .settings/
 .project
 .classpath
+
+dist/

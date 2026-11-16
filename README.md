@@ -8,7 +8,11 @@ O herói acorda numa vila onde todo mundo odeia galinhas. O prefeito oferece um 
 
 ## Como rodar
 
-Precisa de um JDK (Java 6 ou mais novo) instalado.
+**Só para jogar:** baixe o `FazendoBico.jar` na página de Releases do GitHub e rode `java -jar FazendoBico.jar` (ou dê dois cliques nele). Precisa do Java 6 ou mais novo instalado. O recorde fica salvo em `recorde.txt`, na pasta de onde o jogo foi aberto.
+
+Para gerar o `.jar` de novo: `empacotar.bat`. Ele compila e junta `bin` e `recursos` em `dist\FazendoBico.jar`.
+
+**A partir do código:** precisa de um JDK (Java 6 ou mais novo) instalado.
 
 ```
 compilar.bat
