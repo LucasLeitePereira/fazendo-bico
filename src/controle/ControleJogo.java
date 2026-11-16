@@ -1,19 +1,24 @@
 package controle;
 
 import java.awt.Point;
+import java.awt.event.KeyEvent;
 import java.awt.Rectangle;
 import java.util.List;
 import java.util.Random;
 
+import dao.DaoControles;
 import dao.DaoFalas;
 import dao.DaoMapa;
 import dao.DaoRecorde;
 import modelo.Animal;
 import modelo.Cena;
+import modelo.Comando;
 import modelo.Configuracao;
+import modelo.Controles;
 import modelo.Decoracao;
 import modelo.Dialogo;
 import modelo.Direcao;
+import modelo.EdicaoDeControles;
 import modelo.Efeito;
 import modelo.Entidade;
 import modelo.Falas;
@@ -27,7 +32,7 @@ import view.Janela;
 import view.Som;
 
 /**
- * Laço principal e regras do jogo: lê o teclado, atualiza o modelo e pede para a janela redesenhar.
+ * Laço principal e regras do jogo: lê o teclado e o controle, atualiza o modelo e pede para a janela redesenhar.
  */
 public class ControleJogo {
     private static final int MILISSEGUNDOS_POR_QUADRO = 1000 / 60;
@@ -47,6 +52,8 @@ public class ControleJogo {
     private static final float VELOCIDADE_DA_ENTRADA = 0.6f;
     // Tempo da animação de morte (13 quadros) mais uma pausa antes da tela final.
     private static final int QUADROS_DA_MORTE = 13 * 6 + 60;
+    // A tela final ignora os botões por meio segundo, para quem ainda estava atacando não pular o resultado.
+    private static final int QUADROS_ANTES_DE_SAIR_DO_FIM = 30;
     private static final String MAPA_DA_VILA = "/mapas/vila.tmx";
     private static final String MAPA_DO_CAMPO = "/mapas/campo.tmx";
 
@@ -57,7 +64,10 @@ public class ControleJogo {
     private static final int NUMERO_DO_PREFEITO = 1;
 
     private Mundo mundo = new Mundo();
-    private Teclado teclado = new Teclado();
+    private Entrada entrada = new Entrada();
+    private Teclado teclado = new Teclado(entrada, mundo.getConfiguracao().getControles());
+    private Joystick joystick = new Joystick();
+    private DaoControles daoControles = new DaoControles();
     private ControleRaide controleRaide = new ControleRaide();
     private DaoMapa daoMapa = new DaoMapa();
     private DaoRecorde daoRecorde = new DaoRecorde();
@@ -76,12 +86,16 @@ public class ControleJogo {
     private int quadrosDesdeOCacarejoDaRaide;
     // A música da raide espera o canto do galo terminar. Zero = nada esperando.
     private int quadrosAteAMusicaDaRaide;
+    private int quadrosNaTelaFinal;
 
     public ControleJogo() {
         mundo.getPartida().setRecorde(daoRecorde.ler());
+        daoControles.ler(getControles());
+        joystick.procurar(getControles());
         falas = daoFalas.carregar(ARQUIVO_DE_FALAS);
         mundo.setMapaDoFundo(daoMapa.carregar(MAPA_DA_VILA));
         janela = new Janela(mundo, teclado);
+        janela.addFocusListener(teclado);
         som.definirVolumeDaMusica(mundo.getConfiguracao().getVolumeDaMusica());
         som.tocarMusica("inicial");
     }
@@ -102,15 +116,21 @@ public class ControleJogo {
         System.exit(0);
     }
 
+    private Controles getControles() {
+        return mundo.getConfiguracao().getControles();
+    }
+
     private void atualizar() {
-        if (teclado.consumirTelaCheia()) {
+        joystick.ler(entrada, getControles());
+        entrada.novoQuadro();
+        if (entrada.consumirTelaCheia()) {
             janela.alternarTelaCheia();
-            teclado.limparToques();
+            entrada.limparToques();
         }
-        if (teclado.consumirMais()) {
+        if (entrada.consumirMais()) {
             mudarVolumeDaMusica(Configuracao.PASSO_DO_VOLUME);
         }
-        if (teclado.consumirMenos()) {
+        if (entrada.consumirMenos()) {
             mudarVolumeDaMusica(-Configuracao.PASSO_DO_VOLUME);
         }
         mundo.getConfiguracao().contarQuadroDoAviso();
@@ -130,6 +150,9 @@ public class ControleJogo {
                 break;
             case CREDITOS:
                 atualizarCreditos();
+                break;
+            case CONTROLES:
+                atualizarTelaDeControles();
                 break;
         }
         atualizarSomDosPassos();
@@ -164,7 +187,7 @@ public class ControleJogo {
 
     private void mudarCena(Cena cena) {
         mundo.getPartida().setCena(cena);
-        teclado.limparToques();
+        entrada.limparToques();
     }
 
     // ---------- Tela inicial ----------
@@ -172,18 +195,18 @@ public class ControleJogo {
     private void atualizarTelaInicial() {
         Partida partida = mundo.getPartida();
 
-        if (teclado.consumirCima()) {
+        if (entrada.consumir(Comando.CIMA)) {
             partida.setOpcaoDoMenu((partida.getOpcaoDoMenu() + Partida.QUANTIDADE_DE_OPCOES - 1) % Partida.QUANTIDADE_DE_OPCOES);
             som.tocarEfeito("menu");
         }
-        if (teclado.consumirBaixo()) {
+        if (entrada.consumir(Comando.BAIXO)) {
             partida.setOpcaoDoMenu((partida.getOpcaoDoMenu() + 1) % Partida.QUANTIDADE_DE_OPCOES);
             som.tocarEfeito("menu");
         }
 
         // Na linha "Música", esquerda e direita mudam o volume.
-        boolean apertouEsquerda = teclado.consumirEsquerda();
-        boolean apertouDireita = teclado.consumirDireita();
+        boolean apertouEsquerda = entrada.consumir(Comando.ESQUERDA);
+        boolean apertouDireita = entrada.consumir(Comando.DIREITA);
         if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
             if (apertouEsquerda) {
                 mudarVolumeDaMusica(-Configuracao.PASSO_DO_VOLUME);
@@ -193,9 +216,11 @@ public class ControleJogo {
             }
         }
 
-        if (teclado.consumirConfirmar()) {
+        if (entrada.consumir(Comando.CONFIRMAR)) {
             if (partida.getOpcaoDoMenu() == Partida.OPCAO_JOGAR) {
                 comecarPartida();
+            } else if (partida.getOpcaoDoMenu() == Partida.OPCAO_CONTROLES) {
+                abrirTelaDeControles();
             } else if (partida.getOpcaoDoMenu() == Partida.OPCAO_CREDITOS) {
                 mudarCena(Cena.CREDITOS);
                 som.tocarEfeito("menu");
@@ -204,7 +229,7 @@ public class ControleJogo {
             }
         }
 
-        if (teclado.consumirVoltar()) {
+        if (entrada.consumir(Comando.VOLTAR)) {
             jogando = false;
         }
     }
@@ -212,13 +237,160 @@ public class ControleJogo {
     // ---------- Créditos ----------
 
     private void atualizarCreditos() {
-        boolean apertouConfirmar = teclado.consumirConfirmar();
-        boolean apertouVoltar = teclado.consumirVoltar();
-        boolean apertouAcao = teclado.consumirAcao();
+        boolean apertouConfirmar = entrada.consumir(Comando.CONFIRMAR);
+        boolean apertouVoltar = entrada.consumir(Comando.VOLTAR);
+        boolean apertouAcao = entrada.consumir(Comando.ACAO);
         if (apertouConfirmar || apertouVoltar || apertouAcao) {
             mudarCena(Cena.INICIAL);
             som.tocarEfeito("menu");
         }
+    }
+
+    // ---------- Controles ----------
+
+    private void abrirTelaDeControles() {
+        mundo.getEdicaoDeControles().reiniciar();
+        if (!getControles().isControleConectado()) {
+            joystick.procurar(getControles());
+        }
+        mudarCena(Cena.CONTROLES);
+        som.tocarEfeito("menu");
+    }
+
+    private void atualizarTelaDeControles() {
+        EdicaoDeControles edicao = mundo.getEdicaoDeControles();
+        edicao.contarQuadroDoAviso();
+        if (edicao.isEsperando()) {
+            atualizarTrocaDeControle(edicao);
+            return;
+        }
+
+        if (entrada.consumir(Comando.CIMA)) {
+            edicao.subir();
+            som.tocarEfeito("menu");
+        }
+        if (entrada.consumir(Comando.BAIXO)) {
+            edicao.descer();
+            som.tocarEfeito("menu");
+        }
+        boolean apertouEsquerda = entrada.consumir(Comando.ESQUERDA);
+        boolean apertouDireita = entrada.consumir(Comando.DIREITA);
+        if ((apertouEsquerda || apertouDireita) && edicao.isNaTabela()) {
+            edicao.trocarDeColuna();
+            som.tocarEfeito("menu");
+        }
+
+        if (entrada.consumir(Comando.VOLTAR)) {
+            sairDaTelaDeControles();
+            return;
+        }
+        boolean apertouConfirmar = entrada.consumir(Comando.CONFIRMAR);
+        boolean apertouAcao = entrada.consumir(Comando.ACAO);
+        if (!apertouConfirmar && !apertouAcao) {
+            return;
+        }
+
+        if (edicao.getLinha() == EdicaoDeControles.LINHA_VOLTAR) {
+            sairDaTelaDeControles();
+        } else if (edicao.getLinha() == EdicaoDeControles.LINHA_RESTAURAR) {
+            getControles().restaurarPadrao();
+            entrada.soltarTudo();
+            daoControles.salvar(getControles());
+            edicao.avisar("Controles padrão de volta");
+            som.tocarEfeito("missao");
+        } else if (edicao.getColuna() == EdicaoDeControles.COLUNA_CONTROLE) {
+            comecarTrocaDeBotao(edicao);
+        } else {
+            edicao.comecarAEsperar();
+            entrada.comecarCaptura();
+            som.tocarEfeito("menu");
+        }
+    }
+
+    private void comecarTrocaDeBotao(EdicaoDeControles edicao) {
+        if (edicao.getComando().isDirecao()) {
+            edicao.avisar("No controle, ande com o direcional ou o analógico");
+            return;
+        }
+        if (!getControles().isControleConectado()) {
+            joystick.procurar(getControles());
+        }
+        if (!getControles().isControleConectado()) {
+            edicao.avisar("Nenhum controle encontrado");
+            som.tocarEfeito("erro");
+            return;
+        }
+        edicao.comecarAEsperar();
+        entrada.comecarCaptura();
+        som.tocarEfeito("menu");
+    }
+
+    /**
+     * Esperando a tecla ou o botão novo. Esc cancela; Backspace apaga
+     * (no teclado, a segunda tecla; no controle, os botões do comando).
+     */
+    private void atualizarTrocaDeControle(EdicaoDeControles edicao) {
+        if (edicao.contarQuadroEsperando()) {
+            terminarTrocaDeControle(edicao, "Tempo esgotado, nada mudou");
+            return;
+        }
+        Comando comando = edicao.getComando();
+        boolean naColunaDoControle = edicao.getColuna() == EdicaoDeControles.COLUNA_CONTROLE;
+        int tecla = entrada.pegarTeclaCapturada();
+        String botao = entrada.pegarBotaoCapturado();
+
+        if (tecla == KeyEvent.VK_ESCAPE) {
+            terminarTrocaDeControle(edicao, "Nada mudou");
+        } else if (tecla == KeyEvent.VK_BACK_SPACE || tecla == KeyEvent.VK_DELETE) {
+            if (naColunaDoControle) {
+                getControles().apagarBotoes(comando);
+                terminarTrocaDeControle(edicao, comando.getNome() + ": sem botões no controle");
+            } else {
+                getControles().apagarSegundaTecla(comando);
+                terminarTrocaDeControle(edicao, comando.getNome() + ": segunda tecla apagada");
+            }
+        } else if (tecla != Controles.SEM_TECLA && naColunaDoControle) {
+            edicao.avisar("Aperte um botão do controle");
+        } else if (tecla != Controles.SEM_TECLA) {
+            trocarTecla(edicao, comando, tecla);
+        } else if (botao != null && !naColunaDoControle) {
+            edicao.avisar("Aperte uma tecla do teclado");
+        } else if (botao != null) {
+            getControles().definirBotao(comando, botao);
+            terminarTrocaDeControle(edicao, comando.getNome() + ": " + getControles().nomeDoBotao(botao));
+        }
+    }
+
+    private void trocarTecla(EdicaoDeControles edicao, Comando comando, int tecla) {
+        String nome = Controles.nomeDaTecla(tecla);
+        if (Teclado.isTeclaDoVolume(tecla)) {
+            edicao.avisar(nome + " fica com o volume da música");
+            return;
+        }
+        Comando dono = getControles().comandoDaTecla(tecla);
+        if (!getControles().definirTecla(comando, tecla)) {
+            edicao.avisar(nome + " é a única tecla de " + dono.getNome());
+            return;
+        }
+        String mensagem = comando.getNome() + ": " + nome;
+        if (dono != null && dono != comando) {
+            mensagem = mensagem + " (saiu de " + dono.getNome() + ")";
+        }
+        terminarTrocaDeControle(edicao, mensagem);
+    }
+
+    private void terminarTrocaDeControle(EdicaoDeControles edicao, String aviso) {
+        edicao.pararDeEsperar();
+        edicao.avisar(aviso);
+        entrada.terminarCaptura();
+        entrada.soltarTudo();
+        daoControles.salvar(getControles());
+        som.tocarEfeito("menu");
+    }
+
+    private void sairDaTelaDeControles() {
+        mudarCena(Cena.INICIAL);
+        som.tocarEfeito("menu");
     }
 
     private void comecarPartida() {
@@ -311,7 +483,7 @@ public class ControleJogo {
     }
 
     private void atualizarVila() {
-        if (teclado.consumirVoltar()) {
+        if (entrada.consumir(Comando.VOLTAR)) {
             voltarParaTelaInicial();
             return;
         }
@@ -326,7 +498,7 @@ public class ControleJogo {
         atualizarAnimais();
         mundo.atualizarEfeitos();
 
-        if (teclado.consumirAcao()) {
+        if (entrada.consumir(Comando.ACAO)) {
             conversarComMoradorProximo();
         }
 
@@ -383,8 +555,8 @@ public class ControleJogo {
     // ---------- Diálogo ----------
 
     private void atualizarDialogo() {
-        boolean apertouAcao = teclado.consumirAcao();
-        boolean apertouConfirmar = teclado.consumirConfirmar();
+        boolean apertouAcao = entrada.consumir(Comando.ACAO);
+        boolean apertouConfirmar = entrada.consumir(Comando.CONFIRMAR);
         if (!apertouAcao && !apertouConfirmar) {
             return;
         }
@@ -456,12 +628,12 @@ public class ControleJogo {
         heroi.setPosicao(destinoDaEntradaX, heroi.getY());
         heroi.setCaminhando(false);
         heroi.setAndando(false);
-        teclado.limparToques();
+        entrada.limparToques();
         mundo.getDialogo().abrir("", falas.getLista("CHEGADA_NO_CAMPO"));
     }
 
     private void atualizarCampo() {
-        if (teclado.consumirVoltar()) {
+        if (entrada.consumir(Comando.VOLTAR)) {
             voltarParaTelaInicial();
             return;
         }
@@ -493,7 +665,7 @@ public class ControleJogo {
             moverHeroiPeloTeclado();
         }
 
-        if (teclado.consumirAcao() && heroi.podeAtacar()) {
+        if (entrada.consumir(Comando.ACAO) && heroi.podeAtacar()) {
             heroi.atacar();
             heroi.setAndando(false);
         }
@@ -648,6 +820,7 @@ public class ControleJogo {
         }
 
         mudarCena(Cena.FIM);
+        quadrosNaTelaFinal = 0;
         if (fugiu) {
             som.tocarMusica("fuga");
         } else {
@@ -658,8 +831,12 @@ public class ControleJogo {
     // ---------- Tela final ----------
 
     private void atualizarTelaFinal() {
-        boolean apertouConfirmar = teclado.consumirConfirmar();
-        boolean apertouVoltar = teclado.consumirVoltar();
+        quadrosNaTelaFinal++;
+        if (quadrosNaTelaFinal < QUADROS_ANTES_DE_SAIR_DO_FIM) {
+            return;
+        }
+        boolean apertouConfirmar = entrada.consumir(Comando.CONFIRMAR);
+        boolean apertouVoltar = entrada.consumir(Comando.VOLTAR);
         if (apertouConfirmar || apertouVoltar) {
             mudarCena(Cena.INICIAL);
             som.tocarMusica("inicial");
@@ -673,14 +850,14 @@ public class ControleJogo {
         float passoX = 0;
         float passoY = 0;
 
-        if (teclado.isEsquerda()) {
+        if (entrada.isSegurando(Comando.ESQUERDA)) {
             passoX = -1;
-        } else if (teclado.isDireita()) {
+        } else if (entrada.isSegurando(Comando.DIREITA)) {
             passoX = 1;
         }
-        if (teclado.isCima()) {
+        if (entrada.isSegurando(Comando.CIMA)) {
             passoY = -1;
-        } else if (teclado.isBaixo()) {
+        } else if (entrada.isSegurando(Comando.BAIXO)) {
             passoY = 1;
         }
 

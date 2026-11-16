@@ -12,6 +12,7 @@ public class Mundo {
     private Partida partida = new Partida();
     private Configuracao configuracao = new Configuracao();
     private Dialogo dialogo = new Dialogo();
+    private EdicaoDeControles edicaoDeControles = new EdicaoDeControles();
     private Mapa mapa;
     private Mapa mapaDoFundo;
     private Heroi heroi;
@@ -110,6 +111,10 @@ public class Mundo {
 
     public Configuracao getConfiguracao() {
         return configuracao;
+    }
+
+    public EdicaoDeControles getEdicaoDeControles() {
+        return edicaoDeControles;
     }
 
     public Partida getPartida() {

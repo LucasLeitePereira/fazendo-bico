@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -16,9 +17,12 @@ import javax.swing.JPanel;
 
 import modelo.Animal;
 import modelo.Cena;
+import modelo.Comando;
 import modelo.Configuracao;
+import modelo.Controles;
 import modelo.Decoracao;
 import modelo.Dialogo;
+import modelo.EdicaoDeControles;
 import modelo.Efeito;
 import modelo.Galinha;
 import modelo.Heroi;
@@ -283,8 +287,13 @@ public class TelaJogo extends JPanel {
             case CREDITOS:
                 desenharCreditos(g2);
                 break;
+            case CONTROLES:
+                desenharTelaDeControles(g2);
+                break;
         }
-        if (partida.getCena() != Cena.INICIAL && partida.getCena() != Cena.CREDITOS) {
+        boolean cenaDoMenu = partida.getCena() == Cena.INICIAL || partida.getCena() == Cena.CREDITOS
+                || partida.getCena() == Cena.CONTROLES;
+        if (!cenaDoMenu) {
             desenharAvisoDeVolume(g2);
         }
     }
@@ -653,7 +662,7 @@ public class TelaJogo extends JPanel {
         desenharMenu(g, partida);
 
         g.setFont(Texto.NORMAL);
-        String dica = "Setas para escolher, Enter para confirmar";
+        String dica = teclasDeEscolha() + " para escolher, " + nomeDaTecla(Comando.CONFIRMAR) + " para confirmar";
         if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
             dica = "Esquerda e direita mudam o volume";
         }
@@ -711,15 +720,15 @@ public class TelaJogo extends JPanel {
     private void desenharMenu(Graphics2D g, Partida partida) {
         int largura = 128;
         int x = (LARGURA - largura) / 2;
-        int y = 112;
-        caixaEscura.desenhar(g, x, y, largura, 88);
+        int y = 102;
+        caixaEscura.desenhar(g, x, y, largura, 106);
 
         g.setFont(Texto.MEDIA);
         String volume = mundo.getConfiguracao().getVolumeDaMusica() + "%";
         if (partida.getOpcaoDoMenu() == Partida.OPCAO_MUSICA) {
             volume = "< " + volume + " >";
         }
-        String[] opcoes = { "Jogar", "Música: " + volume, "Créditos", "Sair" };
+        String[] opcoes = { "Jogar", "Música: " + volume, "Controles", "Créditos", "Sair" };
         for (int i = 0; i < opcoes.length; i++) {
             int linhaY = y + 21 + i * 18;
             Color cor = new Color(220, 200, 180);
@@ -777,8 +786,149 @@ public class TelaJogo extends JPanel {
 
         g.setFont(Texto.NORMAL);
         if (piscando(500)) {
-            Texto.escreverCentralizado(g, "Enter ou Esc para voltar", 226, Color.WHITE);
+            String voltar = nomeDaTecla(Comando.CONFIRMAR) + " ou " + nomeDaTecla(Comando.VOLTAR) + " para voltar";
+            Texto.escreverCentralizado(g, voltar, 226, Color.WHITE);
         }
+    }
+
+    // ---------- Controles ----------
+
+    private static final Color COR_DO_DESTAQUE = new Color(140, 60, 30);
+
+    /**
+     * Nome da primeira tecla do comando, para as dicas acompanharem a troca de teclas.
+     */
+    private String nomeDaTecla(Comando comando) {
+        return Controles.nomeDaTecla(mundo.getConfiguracao().getControles().getTeclaPrincipal(comando));
+    }
+
+    private String teclasDeEscolha() {
+        Controles controles = mundo.getConfiguracao().getControles();
+        boolean setas = controles.getTeclaPrincipal(Comando.CIMA) == KeyEvent.VK_UP
+                && controles.getTeclaPrincipal(Comando.BAIXO) == KeyEvent.VK_DOWN;
+        if (setas) {
+            return "Setas";
+        }
+        return nomeDaTecla(Comando.CIMA) + "/" + nomeDaTecla(Comando.BAIXO);
+    }
+
+    private void desenharTelaDeControles(Graphics2D g) {
+        desenharVilaAoFundo(g);
+        Controles controles = mundo.getConfiguracao().getControles();
+        EdicaoDeControles edicao = mundo.getEdicaoDeControles();
+
+        int largura = 296;
+        int x = (LARGURA - largura) / 2;
+        int y = 6;
+        caixaClara.desenhar(g, x, y, largura, 200);
+
+        g.setFont(Texto.GRANDE);
+        String titulo = "Controles";
+        Texto.escreverComContorno(g, titulo, Texto.centralizar(g, titulo, LARGURA / 2), y + 22,
+                COR_DO_TITULO, new Color(70, 35, 20), 1f);
+
+        g.setFont(Texto.NORMAL);
+        String situacao = "Nenhum controle conectado";
+        if (controles.isControleConectado()) {
+            situacao = "Controle: " + controles.getNomeDoControle();
+            if (situacao.length() > 48) {
+                situacao = situacao.substring(0, 48) + "...";
+            }
+        }
+        Texto.escreverSemSombra(g, situacao, Texto.centralizar(g, situacao, LARGURA / 2), y + 34, COR_DO_TEXTO_ESCURO);
+
+        int larguraDaColuna = 86;
+        int[] colunas = { x + 114, x + 204 };
+        String[] cabecalhos = { "Teclado", "Controle" };
+        for (int c = 0; c < colunas.length; c++) {
+            Texto.escreverSemSombra(g, cabecalhos[c], Texto.centralizar(g, cabecalhos[c], colunas[c] + larguraDaColuna / 2),
+                    y + 50, COR_DO_DESTAQUE);
+        }
+
+        Comando[] comandos = Comando.values();
+        for (int i = 0; i < comandos.length; i++) {
+            int linhaY = y + 64 + i * 13;
+            boolean linhaAtual = edicao.getLinha() == i;
+            Color corDoNome = COR_DO_TEXTO_ESCURO;
+            if (linhaAtual) {
+                corDoNome = COR_DO_DESTAQUE;
+            }
+            Texto.escreverSemSombra(g, comandos[i].getNome(), x + 14, linhaY, corDoNome);
+
+            String[] celulas = { textoDasTeclas(controles, comandos[i]), textoDosBotoes(controles, comandos[i]) };
+            for (int c = 0; c < celulas.length; c++) {
+                String texto = celulas[c];
+                boolean celulaAtual = linhaAtual && edicao.getColuna() == c;
+                if (celulaAtual) {
+                    g.setColor(new Color(255, 245, 220, 170));
+                    g.fillRoundRect(colunas[c] - 2, linhaY - 9, larguraDaColuna + 4, 12, 4, 4);
+                    if (edicao.isEsperando()) {
+                        texto = "";
+                        if (piscando(300)) {
+                            texto = "Aperte...";
+                        }
+                    }
+                }
+                Texto.escreverSemSombra(g, texto, Texto.centralizar(g, texto, colunas[c] + larguraDaColuna / 2), linhaY,
+                        COR_DO_TEXTO_ESCURO);
+            }
+        }
+
+        String[] opcoes = { "Restaurar padrão", "Voltar" };
+        int[] linhasDasOpcoes = { EdicaoDeControles.LINHA_RESTAURAR, EdicaoDeControles.LINHA_VOLTAR };
+        g.setFont(Texto.MEDIA);
+        for (int i = 0; i < opcoes.length; i++) {
+            int linhaY = y + 64 + comandos.length * 13 + 8 + i * 14;
+            float textoX = Texto.centralizar(g, opcoes[i], LARGURA / 2);
+            Color cor = COR_DO_TEXTO_ESCURO;
+            if (edicao.getLinha() == linhasDasOpcoes[i]) {
+                cor = COR_DO_DESTAQUE;
+                int balanco = (int) ((System.currentTimeMillis() / 200) % 2);
+                if (mao != null) {
+                    g.drawImage(mao, (int) textoX - 22 + balanco, linhaY - 10, null);
+                } else {
+                    Texto.escreverSemSombra(g, ">", textoX - 12 + balanco, linhaY, cor);
+                }
+            }
+            Texto.escreverSemSombra(g, opcoes[i], textoX, linhaY, cor);
+        }
+
+        g.setFont(Texto.NORMAL);
+        if (edicao.getAviso().length() > 0) {
+            Texto.escreverCentralizado(g, edicao.getAviso(), 218, COR_DO_TITULO);
+        }
+        String dica = nomeDaTecla(Comando.CONFIRMAR) + " troca, " + nomeDaTecla(Comando.VOLTAR)
+                + " volta, esquerda e direita mudam a coluna";
+        if (edicao.isEsperando() && edicao.getColuna() == EdicaoDeControles.COLUNA_TECLADO) {
+            dica = "Aperte a tecla nova. Backspace tira a segunda, Esc cancela";
+        } else if (edicao.isEsperando()) {
+            dica = "Aperte o botão novo. Backspace tira os botões, Esc cancela";
+        }
+        if (piscando(500)) {
+            Texto.escreverCentralizado(g, dica, 232, Color.WHITE);
+        }
+    }
+
+    private String textoDasTeclas(Controles controles, Comando comando) {
+        String texto = Controles.nomeDaTecla(controles.getTecla(comando, 0));
+        int segunda = controles.getTecla(comando, 1);
+        if (segunda != Controles.SEM_TECLA) {
+            texto = texto + " / " + Controles.nomeDaTecla(segunda);
+        }
+        return texto;
+    }
+
+    private String textoDosBotoes(Controles controles, Comando comando) {
+        if (comando.isDirecao()) {
+            return "Direcional";
+        }
+        String primeiro = controles.getBotao(comando, 0);
+        String segundo = controles.getBotao(comando, 1);
+        String texto = controles.nomeDoBotao(primeiro);
+        if (!segundo.equals(Controles.SEM_BOTAO)) {
+            texto = texto + " / " + controles.nomeDoBotao(segundo);
+        }
+        return texto;
     }
 
     // ---------- Tela final ----------
@@ -840,7 +990,7 @@ public class TelaJogo extends JPanel {
 
         g.setFont(Texto.NORMAL);
         if (piscando(500)) {
-            String voltar = "Enter para voltar";
+            String voltar = nomeDaTecla(Comando.CONFIRMAR) + " para voltar";
             Texto.escreverSemSombra(g, voltar, Texto.centralizar(g, voltar, centro), y + altura - 10, COR_DO_TEXTO_ESCURO);
         }
     }

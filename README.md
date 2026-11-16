@@ -8,9 +8,9 @@ O herói acorda numa vila onde todo mundo odeia galinhas. O prefeito oferece um 
 
 ## Como rodar
 
-**Só para jogar:** baixe o `FazendoBico.jar` na página de Releases do GitHub e rode `java -jar FazendoBico.jar` (ou dê dois cliques nele). Precisa do Java 6 ou mais novo instalado. O recorde fica salvo em `recorde.txt`, na pasta de onde o jogo foi aberto.
+**Só para jogar:** baixe o `FazendoBico.jar` na página de Releases do GitHub e rode `java -jar FazendoBico.jar` (ou dê dois cliques nele). Precisa do Java 6 ou mais novo instalado. O recorde fica salvo em `recorde.txt` e os controles em `controles.txt`, na pasta de onde o jogo foi aberto.
 
-Para gerar o `.jar` de novo: `empacotar.bat`. Ele compila e junta `bin` e `recursos` em `dist\FazendoBico.jar`.
+Para gerar o `.jar` de novo: `empacotar.bat`. Ele compila e junta `bin`, `recursos` e as classes da JInput (`lib/`) em `dist\FazendoBico.jar`.
 
 **A partir do código:** precisa de um JDK (Java 6 ou mais novo) instalado.
 
@@ -21,18 +21,29 @@ executar.bat
 
 O código usa só recursos do Java 6. Para conferir isso, aponte a variável `JDK_JAVA6` para um JDK 6, 7 ou 8 antes de compilar, e o `compilar.bat` passa a compilar no modo Java 6.
 
-Em uma IDE (Eclipse, IntelliJ, NetBeans), marque `src` **e** `recursos` como pastas de código-fonte e rode a classe `controle.Jogo`.
+Em uma IDE (Eclipse, IntelliJ, NetBeans), marque `src` **e** `recursos` como pastas de código-fonte, adicione os dois `.jar` de `lib/` como bibliotecas e rode a classe `controle.Jogo`.
 
 ## Controles
 
-| Tecla | Ação |
-|---|---|
-| Setas ou WASD | Andar (e escolher no menu) |
-| Espaço ou Z | Conversar (vila), atacar (campo), avançar o diálogo |
-| Enter | Confirmar |
-| Esc | Voltar à tela inicial / sair |
-| F11 ou Alt+Enter | Liga e desliga a tela cheia |
+Padrão (dá para trocar no menu, em **Controles**):
+
+| Tecla | Controle (modo X-input) | Ação |
+|---|---|---|
+| Setas ou WASD | Direcional ou analógico esquerdo | Andar (e escolher no menu) |
+| Espaço ou Z | A ou X | Conversar (vila), atacar (campo), avançar o diálogo |
+| Enter | Start ou A | Confirmar |
+| Esc | Select | Voltar à tela inicial / sair |
+| F11 ou Alt+Enter | | Liga e desliga a tela cheia |
 | - e + | Volume da música, em qualquer tela (também no menu inicial, na opção "Música", com esquerda/direita). Começa em 40%. Os efeitos tocam fixos em 30% |
+
+### Trocar teclas e usar controle
+
+No menu inicial, **Controles** mostra uma tabela com os comandos (linhas) e as colunas Teclado e Controle. Escolha a célula, aperte Enter e depois a tecla ou o botão novo. O novo vira o primeiro e o antigo primeiro fica como segundo. Esc cancela; Backspace apaga a segunda tecla (ou os botões, na coluna do controle). "Restaurar padrão" volta ao que está na tabela acima. Tudo é salvo em `controles.txt`; apague o arquivo para voltar ao padrão.
+
+- Uma tecla só pode estar em um comando: ao ir para outro, ela sai do antigo. O jogo não deixa tirar a única tecla de um comando. F11, `-` e `+` não podem ser trocadas.
+- Um botão pode estar em mais de um comando (o A ataca no jogo e confirma no menu).
+- No controle, andar é sempre pelo direcional ou pelo analógico esquerdo.
+- O controle é lido pela biblioteca **JInput** 2.0.7 (DirectInput do Windows), que vai dentro do `.jar`. Testado com o padrão dos controles 8BitDo e Xbox no modo **X-input**; em outros modos os botões aparecem como números e é só trocá-los na tela. Ligue o controle antes de abrir o jogo ou abra a tela Controles, que procura de novo.
 
 A janela também pode ser esticada ou maximizada. A arte é desenhada em 320×240 e ampliada para caber na tela, com faixas pretas nas sobras. Para não pesar, a cena é montada numa escala inteira de até 3× e depois esticada. Se o PC estiver lento, essa escala cai sozinha.
 
@@ -44,9 +55,10 @@ O projeto segue a mesma divisão de pacotes das aulas:
 src/
   modelo/    os dados e as regras de cada coisa do jogo
   view/      tudo o que aparece na tela ou toca no alto-falante
-  controle/  o laço do jogo: lê o teclado, atualiza o modelo e pede para a tela redesenhar
-  dao/       leitura e gravação de arquivos (mapas e recorde)
-recursos/    mapas, imagens, sons e músicas
+  controle/  o laço do jogo: lê o teclado e o controle, atualiza o modelo e pede para a tela redesenhar
+  dao/       leitura e gravação de arquivos (mapas, recorde e controles)
+recursos/    mapas, imagens, sons, músicas e as DLLs da JInput (nativos/)
+lib/         JInput (controle) e jutils, a dependência dela
 ```
 
 | Classe | O que faz |
@@ -54,7 +66,11 @@ recursos/    mapas, imagens, sons e músicas
 | `controle.Jogo` | `main`: cria o `ControleJogo` e inicia o laço |
 | `controle.ControleJogo` | Laço principal (60 quadros por segundo), troca de cenas, conversas, ataques, dano, fim de partida |
 | `controle.ControleRaide` | Lança as galinhas da raide em ondas, cada vez mais rápidas |
-| `controle.Teclado` | `KeyListener` que guarda quais teclas estão apertadas |
+| `controle.Teclado` | `KeyListener` que traduz cada tecla no comando ligado a ela (veja `modelo.Controles`) |
+| `controle.Joystick` | Lê o controle pela JInput a cada quadro; copia as DLLs para a pasta temporária |
+| `controle.Entrada` | Junta teclado e controle: o que está segurado e o que foi apertado neste quadro |
+| `modelo.Comando`, `Controles` | Os comandos (cima, ação, voltar...) e as teclas e botões de cada um |
+| `modelo.EdicaoDeControles` | Cursor e avisos da tela de controles |
 | `modelo.Entidade` | Classe abstrata: posição, tamanho, direção, movimento com colisão |
 | `modelo.Heroi`, `Galinha`, `Morador`, `Animal` | Herdam de `Entidade` e cada uma implementa `atualizar` do seu jeito |
 | `modelo.Arma` | Dano, alcance e tempo de recarga do golpe |
@@ -71,11 +87,11 @@ recursos/    mapas, imagens, sons e músicas
 | `view.Animacao` | Recorta e desenha os quadros de uma folha de sprites |
 | `view.Hud`, `CaixaDialogo`, `Texto` | Corações, moedas, onda, faixa da raide e caixa de conversa com retrato |
 | `view.Imagens`, `Som` | Carregam imagens (PNG) e tocam sons (WAV) |
-| `dao.DaoMapa`, `DaoRecorde` | Lê os mapas do Tiled (`.tmx`); lê e grava o recorde em `recorde.txt` |
+| `dao.DaoMapa`, `DaoRecorde`, `DaoControles` | Lê os mapas do Tiled (`.tmx`); lê e grava o recorde em `recorde.txt` e os controles em `controles.txt` |
 
 ### Como o jogo funciona
 1. `ControleJogo.iniciar()` roda um laço que, a cada 1/60 de segundo, chama `atualizar()` e depois `janela.desenhar()`.
-2. `atualizar()` olha a cena atual (`INICIAL`, `VILA`, `CAMPO` ou `FIM`) e aplica as regras dela.
+2. `atualizar()` lê o controle, fecha os toques do quadro, olha a cena atual (`INICIAL`, `VILA`, `CAMPO`, `FIM`, `CREDITOS` ou `CONTROLES`) e aplica as regras dela.
 3. `TelaJogo.paintComponent()` lê o `Mundo` e desenha a mesma cena. A câmera segue o herói.
 4. Colisão: cada `Entidade` tem um retângulo (`getArea`). O movimento é desfeito se o retângulo encostar num tile sólido, num colisor (do mapa ou de uma decoração) ou em outra entidade, e o golpe acerta as galinhas cujo retângulo cruza a área do golpe.
 5. Profundidade: decorações, animais, moradores, galinhas e herói entram numa fila ordenada pela altura do pé. Quem está mais acima é desenhado primeiro, então o herói passa atrás de uma árvore e na frente de outra.
@@ -209,6 +225,7 @@ Os mesmos créditos aparecem no jogo, na opção "Créditos" do menu.
 - Arte (tileset, personagens, animais, decorações, efeitos e interface): **Sunnyside World**, de Daniel Diggle (itch.io). Confirmar os termos da licença na página do pacote.
 - Sons: **The Legend of Zelda: Ocarina of Time**.
 - Músicas: **Pokémon Emerald** e **Crash of Titans**.
+- Leitura do controle: **JInput** 2.0.7 e **jutils** 1.0.0 (licença BSD).
 - Mapas editados com o **Tiled** (<https://www.mapeditor.org>). A vila foi recortada da cena de exemplo que vem no pacote.
 
 Liste aqui a origem e a licença de cada outro sprite, som e música usados.

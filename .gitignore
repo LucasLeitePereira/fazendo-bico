@@ -2,6 +2,7 @@ bin/
 out/
 *.class
 recorde.txt
+controles.txt
 
 # Material da entrega, anotações pessoais e o pacote de assets original (só o que o jogo usa vai para recursos/)
 entrada/

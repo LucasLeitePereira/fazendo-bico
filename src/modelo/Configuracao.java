@@ -1,7 +1,7 @@
 package modelo;
 
 /**
- * Ajustes do jogador que valem para o jogo todo, fora da partida (por enquanto, o volume da música).
+ * Ajustes do jogador que valem para o jogo todo, fora da partida: o volume da música e os controles.
  */
 public class Configuracao {
     public static final int VOLUME_INICIAL = 40;
@@ -11,6 +11,7 @@ public class Configuracao {
 
     private int volumeDaMusica = VOLUME_INICIAL;
     private int quadrosMostrandoVolume;
+    private Controles controles = new Controles();
 
     /**
      * Soma (ou subtrai, se for negativo) ao volume, sem passar de 0% nem de 100%.
@@ -28,6 +29,10 @@ public class Configuracao {
 
     public int getVolumeDaMusica() {
         return volumeDaMusica;
+    }
+
+    public Controles getControles() {
+        return controles;
     }
 
     public int getQuadrosMostrandoVolume() {
